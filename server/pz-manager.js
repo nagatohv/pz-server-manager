@@ -167,8 +167,9 @@ export function startServer() {
   // Ejecutar el script. Project Zomboid usa el directorio actual para algunas dependencias
   pzProcess = spawn('bash', [
     scriptPath,
-    `-userdir=${ZO_USER_DIR}`,
-    `-servername=${SERVER_NAME}`
+    '-userdir', ZO_USER_DIR,
+    '-servername', SERVER_NAME,
+    '-adminpassword', process.env.ADMIN_PASSWORD || 'admin'
   ], {
     cwd: PZ_SERVER_DIR,
     env: { ...process.env }
@@ -343,7 +344,7 @@ export function sendCommand(commandString) {
   return { success: true };
 }
 
-export function updateGame() {
+export function updateGame(requestedBranch) {
   if (pzStatus === 'RUNNING' || pzStatus === 'STARTING' || pzStatus === 'UPDATING') {
     return { error: 'No se puede actualizar mientras el servidor está en ejecución o actualizándose.' };
   }
@@ -361,7 +362,7 @@ export function updateGame() {
     return { error: `No se encontró SteamCMD en: ${steamCmdPath}. Por favor reinicia el contenedor.` };
   }
 
-  const branch = process.env.STEAMAPPBRANCH || '';
+  const branch = requestedBranch !== undefined ? requestedBranch : (process.env.STEAMAPPBRANCH || '');
   const betaFlag = branch ? `-beta ${branch}` : '';
 
   appendLog(`[SteamCMD] Ejecutando descarga del AppID 380870 ${branch ? `(rama: ${branch})` : '(rama: estable stable)'}...`);

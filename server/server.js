@@ -72,7 +72,8 @@ app.post('/api/control', authenticate, (req, res) => {
       return res.json({ message: 'Servidor detenido forzosamente.' });
     }
     case 'update': {
-      const result = pzManager.updateGame();
+      const { branch } = req.body;
+      const result = pzManager.updateGame(branch);
       if (result.error) return res.status(400).json(result);
       return res.json({ message: 'Iniciando actualización del servidor...' });
     }

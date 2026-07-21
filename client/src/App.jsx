@@ -79,6 +79,7 @@ export default function App() {
   // Estados de Mods
   const [newModId, setNewModId] = useState('');
   const [newWorkshopId, setNewWorkshopId] = useState('');
+  const [selectedBranch, setSelectedBranch] = useState('');
 
   // Refs para auto-scroll del terminal
   const terminalEndRef = useRef(null);
@@ -285,9 +286,9 @@ export default function App() {
   }, [logs]);
 
   // Acciones de Control
-  const handleControl = async (action) => {
+  const handleControl = async (action, payload = {}) => {
     try {
-      await apiCall('/api/control', 'POST', { action });
+      await apiCall('/api/control', 'POST', { action, ...payload });
     } catch (err) {
       alert(`Error al ejecutar acción: ${err.message}`);
     }
@@ -511,13 +512,27 @@ export default function App() {
               >
                 <StopIcon /> Detener Seguro
               </button>
-              <button 
-                className="btn btn-purple"
-                onClick={() => handleControl('update')}
-                disabled={statusData.status === 'RUNNING' || statusData.status === 'STARTING' || statusData.status === 'UPDATING'}
-              >
-                <UpdateIcon /> Actualizar Juego (SteamCMD)
-              </button>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'stretch' }}>
+                <select 
+                  className="form-control"
+                  style={{ minWidth: '160px', background: 'rgba(15, 23, 42, 0.4)', borderColor: 'rgba(139, 92, 246, 0.3)', borderRadius: '8px', color: 'white', fontSize: '0.9rem', cursor: 'pointer' }}
+                  value={selectedBranch}
+                  onChange={(e) => setSelectedBranch(e.target.value)}
+                  disabled={statusData.status === 'RUNNING' || statusData.status === 'STARTING' || statusData.status === 'UPDATING'}
+                >
+                  <option value="" style={{ background: '#0f172a' }}>Estable (Build 41)</option>
+                  <option value="unstable" style={{ background: '#0f172a' }}>Unstable (Build 42 Beta)</option>
+                  <option value="legacy40" style={{ background: '#0f172a' }}>Legacy (Build 40)</option>
+                </select>
+                <button 
+                  className="btn btn-purple"
+                  onClick={() => handleControl('update', { branch: selectedBranch })}
+                  disabled={statusData.status === 'RUNNING' || statusData.status === 'STARTING' || statusData.status === 'UPDATING'}
+                  style={{ whiteSpace: 'nowrap' }}
+                >
+                  <UpdateIcon /> Actualizar
+                </button>
+              </div>
               <button 
                 className="btn btn-danger"
                 onClick={() => handleControl('kill')}
@@ -596,14 +611,28 @@ export default function App() {
                 >
                   <StopIcon /> Detener Seguro
                 </button>
-                <button 
-                  type="button"
-                  className="btn btn-purple"
-                  onClick={() => handleControl('update')}
-                  disabled={statusData.status === 'RUNNING' || statusData.status === 'STARTING' || statusData.status === 'UPDATING'}
-                >
-                  <UpdateIcon /> Actualizar Juego (SteamCMD)
-                </button>
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'stretch' }}>
+                  <select 
+                    className="form-control"
+                    style={{ minWidth: '160px', background: 'rgba(15, 23, 42, 0.4)', borderColor: 'rgba(139, 92, 246, 0.3)', borderRadius: '8px', color: 'white', fontSize: '0.9rem', cursor: 'pointer' }}
+                    value={selectedBranch}
+                    onChange={(e) => setSelectedBranch(e.target.value)}
+                    disabled={statusData.status === 'RUNNING' || statusData.status === 'STARTING' || statusData.status === 'UPDATING'}
+                  >
+                    <option value="" style={{ background: '#0f172a' }}>Estable (Build 41)</option>
+                    <option value="unstable" style={{ background: '#0f172a' }}>Unstable (Build 42 Beta)</option>
+                    <option value="legacy40" style={{ background: '#0f172a' }}>Legacy (Build 40)</option>
+                  </select>
+                  <button 
+                    type="button"
+                    className="btn btn-purple"
+                    onClick={() => handleControl('update', { branch: selectedBranch })}
+                    disabled={statusData.status === 'RUNNING' || statusData.status === 'STARTING' || statusData.status === 'UPDATING'}
+                    style={{ whiteSpace: 'nowrap' }}
+                  >
+                    <UpdateIcon /> Actualizar
+                  </button>
+                </div>
                 <button 
                   type="button"
                   className="btn btn-danger"
