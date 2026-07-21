@@ -19,6 +19,16 @@ const logBuffer = [];
 // Variables para el proceso de SteamCMD
 let steamCmdProcess = null;
 
+let installedBranch = '';
+const installedBranchFile = path.join(DATA_DIR, 'installed_branch.txt');
+try {
+  if (fs.existsSync(installedBranchFile)) {
+    installedBranch = fs.readFileSync(installedBranchFile, 'utf8').trim();
+  }
+} catch (err) {
+  // Ignorar errores al cargar la rama inicial
+}
+
 // Configuración de Memoria
 const JVM_MIN_GB = process.env.JVM_MIN_GB || '4';
 const JVM_MAX_GB = process.env.JVM_MAX_GB || '8';
@@ -139,7 +149,8 @@ export function getStatus() {
     config: {
       serverName: SERVER_NAME,
       jvmMin: JVM_MIN_GB,
-      jvmMax: JVM_MAX_GB
+      jvmMax: JVM_MAX_GB,
+      installedBranch: installedBranch
     }
   };
 }
@@ -240,7 +251,7 @@ export function startServer() {
   // Ejecutar el script. Project Zomboid usa el directorio actual para algunas dependencias
   pzProcess = spawn('bash', [
     scriptPath,
-    '-userdir', ZO_USER_DIR,
+    '-cachedir=' + ZO_USER_DIR,
     '-servername', SERVER_NAME,
     '-adminpassword', process.env.ADMIN_PASSWORD || 'admin'
   ], {
@@ -524,6 +535,7 @@ export function updateGame(requestedBranch) {
 
     if (code === 0 && startScriptExists) {
       fs.writeFileSync(installedBranchFile, branch, 'utf8');
+      installedBranch = branch;
       appendLog(`[Manager] Actualización completada con éxito. Rama registrada: "${branch || 'estable'}"`);
       
       if (fs.existsSync(backupDir)) {

@@ -249,6 +249,11 @@ export default function App() {
           setLogs(message.data);
         } else if (message.type === 'status_update') {
           setStatusData(message.data);
+          if (message.data.config && message.data.config.installedBranch !== undefined) {
+            if (message.data.status !== 'UPDATING') {
+              setSelectedBranch(message.data.config.installedBranch);
+            }
+          }
         }
       };
 
