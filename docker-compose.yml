@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  pz-portal:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      # --- PUERTOS DE CONEXIÓN DE JUEGO (UDP) ---
+      # Project Zomboid requiere abrir estos puertos UDP directamente en el host
+      - "16261:16261/udp" # Puerto principal del servidor de juego
+      - "16262:16262/udp" # Puerto de conexión directa de los clientes
+      - "8766:8766/udp" # Puerto Steam Query
+
+    environment:
+      - PORT=${PORT:-3000}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET}
+      - SERVER_NAME=${SERVER_NAME:-servertest}
+      - JVM_MIN_GB=${JVM_MIN_GB:-4}
+      - JVM_MAX_GB=${JVM_MAX_GB:-8}
+      - STEAMAPPBRANCH=${STEAMAPPBRANCH}
+      - DATA_DIR=${DATA_DIR:-/home/steam/data}
+
+    volumes:
+      # Volumen persistente para guardar partidas, configuraciones y la descarga de SteamCMD
+      - pz-data:/home/steam/data
+
+volumes:
+  pz-data:
+
