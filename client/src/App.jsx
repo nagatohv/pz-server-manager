@@ -427,7 +427,9 @@ export default function App() {
           </div>
           <div className="resource-info">
             <span className="resource-label">CPU Proceso</span>
-            <span className="resource-value">{statusData.stats.cpu || 'Inactivo'}</span>
+            <span className="resource-value">
+              {statusData.status === 'RUNNING' && statusData.stats.cpu !== undefined ? `${statusData.stats.cpu}%` : 'Inactivo'}
+            </span>
             <span className="resource-subtext">Asignado al hilo Java</span>
           </div>
         </div>
@@ -440,7 +442,7 @@ export default function App() {
           <div className="resource-info">
             <span className="resource-label">Memoria Usada</span>
             <span className="resource-value">
-              {statusData.status === 'RUNNING' ? `${statusData.stats.memory} MB` : '0 MB'}
+              {statusData.status === 'RUNNING' ? (statusData.stats.memory > 1024 ? `${(statusData.stats.memory / 1024).toFixed(2)} GB` : `${statusData.stats.memory} MB`) : '0 MB'}
             </span>
             <span className="resource-subtext">Límite JVM: {statusData.config.jvmMin}G - {statusData.config.jvmMax}G</span>
           </div>

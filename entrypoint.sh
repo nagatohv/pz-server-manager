@@ -12,11 +12,20 @@ if [ ! -f "/home/steam/data/pzserver/start-server.sh" ]; then
     echo "[Entrypoint] Project Zomboid no está instalado en el volumen persistente (/home/steam/data/pzserver)."
     echo "[Entrypoint] Iniciando instalación inicial vía SteamCMD (esto descargará ~3-4 GB)..."
     
+    # Determinar si se usa una rama beta
+    BETA_ARGS=""
+    if [ -n "$STEAMAPPBRANCH" ]; then
+        echo "[Entrypoint] Usando rama de Steam: $STEAMAPPBRANCH"
+        BETA_ARGS="-beta $STEAMAPPBRANCH"
+    else
+        echo "[Entrypoint] Usando rama de Steam por defecto (estable)"
+    fi
+    
     # Ejecutar steamcmd para descargar el servidor
     /home/steam/steamcmd/steamcmd.sh \
         +force_install_dir /home/steam/data/pzserver \
         +login anonymous \
-        +app_update 380870 validate \
+        +app_update 380870 $BETA_ARGS validate \
         +quit
         
     echo "[Entrypoint] Instalación inicial completada con éxito."

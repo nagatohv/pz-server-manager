@@ -1,6 +1,7 @@
 import { spawn } from 'child_process';
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
 import * as configManager from './config-manager.js';
 
 const DATA_DIR = process.env.DATA_DIR || '/home/steam/data';
@@ -37,27 +38,93 @@ try {
   // Ignorar errores al cargar config inicial
 }
 
-export function getStatus() {
-  // Intentar obtener consumo de recursos si el proceso está corriendo
-  let stats = { cpu: 0, memory: 0 };
-  if (pzProcess && pzStatus === 'RUNNING') {
-    // Si estamos en Linux, podemos intentar leer el uso del proceso hijo
-    // En entornos dockerizados, es más simple devolver valores simbólicos o consultar /proc
-    try {
-      const pid = pzProcess.pid;
-      if (fs.existsSync(`/proc/${pid}/stat`)) {
-        // Enfoque simplificado para evitar dependencias nativas: leer /proc
-        const stat = fs.readFileSync(`/proc/${pid}/stat`, 'utf8').split(' ');
-        const utime = parseInt(stat[13]);
-        const stime = parseInt(stat[14]);
-        const rss = parseInt(stat[23]); // en páginas
-        const pageSize = 4096; // 4KB por página por defecto en linux
-        stats.memory = Math.round((rss * pageSize) / (1024 * 1024)); // MB
-        stats.cpu = 'Activo'; // Simplificado, ya que calcular el % real requiere muestreo de tiempo
+// Variables de monitoreo cached y cálculo de rendimiento
+let cachedCpuPercent = 0;
+let cachedMemMb = 0;
+let lastCpuTicks = 0;
+let lastCpuTime = Date.now();
+let monitorInterval = null;
+
+function findZomboidPid() {
+  if (process.platform !== 'linux') return null;
+  try {
+    const files = fs.readdirSync('/proc');
+    for (const file of files) {
+      if (/^\d+$/.test(file)) {
+        try {
+          const cmdline = fs.readFileSync(`/proc/${file}/cmdline`, 'utf8');
+          if (cmdline.includes('zombie.network.GameServer') || cmdline.includes('ProjectZomboid64')) {
+            return parseInt(file, 10);
+          }
+        } catch (e) {
+          // Ignorar si el proceso terminó o no tenemos permisos de lectura
+        }
       }
-    } catch (e) {
-      // Ignorar errores en sistemas no Linux o accesos fallidos
     }
+  } catch (err) {
+    // Ignorar errores al leer /proc
+  }
+  return null;
+}
+
+function updateResourceStats() {
+  if (pzStatus !== 'RUNNING') {
+    cachedCpuPercent = 0;
+    cachedMemMb = 0;
+    lastCpuTicks = 0;
+    return;
+  }
+
+  const pid = findZomboidPid();
+  if (!pid) {
+    cachedCpuPercent = 0;
+    cachedMemMb = 0;
+    return;
+  }
+
+  try {
+    const statContent = fs.readFileSync(`/proc/${pid}/stat`, 'utf8');
+    const parts = statContent.split(' ');
+    
+    // utime en index 13, stime en index 14
+    const utime = parseInt(parts[13], 10);
+    const stime = parseInt(parts[14], 10);
+    const rss = parseInt(parts[23], 10); // resident set size en páginas
+    
+    const pageSize = 4096; // 4KB por página por defecto en linux
+    cachedMemMb = Math.round((rss * pageSize) / (1024 * 1024));
+
+    const totalTicks = utime + stime;
+    const now = Date.now();
+    const timeDelta = (now - lastCpuTime) / 1000; // delta en segundos
+
+    if (lastCpuTicks > 0 && timeDelta > 0) {
+      const tickDelta = totalTicks - lastCpuTicks;
+      const cpuSeconds = tickDelta / 100; // CLK_TCK suele ser 100 en linux
+      
+      const numCores = os.cpus().length || 1;
+      const percent = (cpuSeconds / timeDelta) * 100;
+      // Porcentaje normalizado de CPU del sistema total (0-100%)
+      cachedCpuPercent = parseFloat((percent / numCores).toFixed(1));
+      
+      if (cachedCpuPercent < 0) cachedCpuPercent = 0;
+      if (cachedCpuPercent > 100) cachedCpuPercent = 100;
+    }
+
+    lastCpuTicks = totalTicks;
+    lastCpuTime = now;
+  } catch (err) {
+    cachedCpuPercent = 0;
+    cachedMemMb = 0;
+    lastCpuTicks = 0;
+  }
+}
+
+export function getStatus() {
+  let stats = { cpu: 0, memory: 0 };
+  if (pzStatus === 'RUNNING') {
+    stats.cpu = cachedCpuPercent;
+    stats.memory = cachedMemMb;
   }
 
   return {
@@ -148,10 +215,16 @@ export function startServer() {
   // Limpiar cualquier intervalo/timer previo por seguridad
   if (playerQueryInterval) clearInterval(playerQueryInterval);
   if (idleShutdownTimer) clearTimeout(idleShutdownTimer);
+  if (monitorInterval) clearInterval(monitorInterval);
   playerQueryInterval = null;
   idleShutdownTimer = null;
+  monitorInterval = null;
   idleShutdownExpiresAt = null;
   onlinePlayerCount = 0;
+  cachedCpuPercent = 0;
+  cachedMemMb = 0;
+  lastCpuTicks = 0;
+  lastCpuTime = Date.now();
 
   broadcast({ type: 'status_update', data: getStatus() });
   appendLog('[Manager] Iniciando el servidor de Project Zomboid...');
@@ -208,10 +281,15 @@ export function startServer() {
           broadcast({ type: 'status_update', data: getStatus() });
           appendLog('[Manager] El servidor de Project Zomboid está en línea y listo para recibir conexiones.');
           
-          // Iniciar consulta periódica de jugadores cada minuto
+          // Iniciar consulta periódica de jugadores e intervalo de monitoreo de recursos
           if (playerQueryInterval) clearInterval(playerQueryInterval);
           playerQueryInterval = setInterval(queryPlayerCount, 60000);
           queryPlayerCount();
+
+          if (monitorInterval) clearInterval(monitorInterval);
+          lastCpuTicks = 0;
+          lastCpuTime = Date.now();
+          monitorInterval = setInterval(updateResourceStats, 3000);
         }
       }
     });
@@ -248,8 +326,14 @@ export function startServer() {
       clearTimeout(idleShutdownTimer);
       idleShutdownTimer = null;
     }
+    if (monitorInterval) {
+      clearInterval(monitorInterval);
+      monitorInterval = null;
+    }
     idleShutdownExpiresAt = null;
     onlinePlayerCount = 0;
+    cachedCpuPercent = 0;
+    cachedMemMb = 0;
 
     broadcast({ type: 'status_update', data: getStatus() });
   });
@@ -278,8 +362,14 @@ export function stopServer() {
     clearTimeout(idleShutdownTimer);
     idleShutdownTimer = null;
   }
+  if (monitorInterval) {
+    clearInterval(monitorInterval);
+    monitorInterval = null;
+  }
   idleShutdownExpiresAt = null;
   onlinePlayerCount = 0;
+  cachedCpuPercent = 0;
+  cachedMemMb = 0;
 
   broadcast({ type: 'status_update', data: getStatus() });
 
@@ -324,8 +414,14 @@ export function killServer() {
     clearTimeout(idleShutdownTimer);
     idleShutdownTimer = null;
   }
+  if (monitorInterval) {
+    clearInterval(monitorInterval);
+    monitorInterval = null;
+  }
   idleShutdownExpiresAt = null;
   onlinePlayerCount = 0;
+  cachedCpuPercent = 0;
+  cachedMemMb = 0;
 
   broadcast({ type: 'status_update', data: getStatus() });
   return { success: true };
@@ -365,6 +461,25 @@ export function updateGame(requestedBranch) {
   const branch = requestedBranch !== undefined ? requestedBranch : (process.env.STEAMAPPBRANCH || '');
   const betaFlag = branch ? `-beta ${branch}` : '';
 
+  // Limpiar versión anterior si hay cambio de versión para optimizar espacio
+  const installedBranchFile = path.join(DATA_DIR, 'installed_branch.txt');
+  let installedBranch = '';
+  if (fs.existsSync(installedBranchFile)) {
+    installedBranch = fs.readFileSync(installedBranchFile, 'utf8').trim();
+  }
+
+  if (installedBranch !== branch) {
+    appendLog(`[Manager] Detectado cambio de rama (instalada: "${installedBranch || 'estable'}", solicitada: "${branch || 'estable'}"). Limpiando archivos antiguos para optimizar espacio...`);
+    try {
+      if (fs.existsSync(PZ_SERVER_DIR)) {
+        fs.rmSync(PZ_SERVER_DIR, { recursive: true, force: true });
+      }
+      fs.mkdirSync(PZ_SERVER_DIR, { recursive: true });
+    } catch (err) {
+      appendLog(`[Manager] Error al limpiar directorio antiguo: ${err.message}`);
+    }
+  }
+
   appendLog(`[SteamCMD] Ejecutando descarga del AppID 380870 ${branch ? `(rama: ${branch})` : '(rama: estable stable)'}...`);
 
   // Ejecutar SteamCMD
@@ -400,6 +515,10 @@ export function updateGame(requestedBranch) {
 
   steamCmdProcess.on('exit', (code) => {
     appendLog(`[SteamCMD] Proceso finalizado. Código de salida: ${code}`);
+    if (code === 0) {
+      fs.writeFileSync(installedBranchFile, branch, 'utf8');
+      appendLog(`[Manager] Actualización completada con éxito. Rama registrada: "${branch || 'estable'}"`);
+    }
     pzStatus = 'STOPPED';
     steamCmdProcess = null;
     broadcast({ type: 'status_update', data: getStatus() });
