@@ -461,22 +461,26 @@ export function updateGame(requestedBranch) {
   const branch = requestedBranch !== undefined ? requestedBranch : (process.env.STEAMAPPBRANCH || '');
   const betaFlag = branch ? `-beta ${branch}` : '';
 
-  // Limpiar versión anterior si hay cambio de versión para optimizar espacio
   const installedBranchFile = path.join(DATA_DIR, 'installed_branch.txt');
   let installedBranch = '';
   if (fs.existsSync(installedBranchFile)) {
     installedBranch = fs.readFileSync(installedBranchFile, 'utf8').trim();
   }
 
+  const backupDir = path.join(DATA_DIR, 'pzserver_backup');
+
   if (installedBranch !== branch) {
-    appendLog(`[Manager] Detectado cambio de rama (instalada: "${installedBranch || 'estable'}", solicitada: "${branch || 'estable'}"). Limpiando archivos antiguos para optimizar espacio...`);
+    appendLog(`[Manager] Detectado cambio de rama (instalada: "${installedBranch || 'estable'}", solicitada: "${branch || 'estable'}"). Preparando cambio seguro...`);
     try {
+      if (fs.existsSync(backupDir)) {
+        fs.rmSync(backupDir, { recursive: true, force: true });
+      }
       if (fs.existsSync(PZ_SERVER_DIR)) {
-        fs.rmSync(PZ_SERVER_DIR, { recursive: true, force: true });
+        fs.renameSync(PZ_SERVER_DIR, backupDir);
       }
       fs.mkdirSync(PZ_SERVER_DIR, { recursive: true });
     } catch (err) {
-      appendLog(`[Manager] Error al limpiar directorio antiguo: ${err.message}`);
+      appendLog(`[Manager] Advertencia durante la preparación del cambio seguro: ${err.message}`);
     }
   }
 
@@ -515,10 +519,39 @@ export function updateGame(requestedBranch) {
 
   steamCmdProcess.on('exit', (code) => {
     appendLog(`[SteamCMD] Proceso finalizado. Código de salida: ${code}`);
-    if (code === 0) {
+    
+    const startScriptExists = fs.existsSync(path.join(PZ_SERVER_DIR, 'start-server.sh'));
+
+    if (code === 0 && startScriptExists) {
       fs.writeFileSync(installedBranchFile, branch, 'utf8');
       appendLog(`[Manager] Actualización completada con éxito. Rama registrada: "${branch || 'estable'}"`);
+      
+      if (fs.existsSync(backupDir)) {
+        appendLog(`[Manager] Eliminando archivos de la versión anterior para liberar espacio...`);
+        try {
+          fs.rmSync(backupDir, { recursive: true, force: true });
+        } catch (err) {
+          appendLog(`[Manager] Error al limpiar directorio de backup: ${err.message}`);
+        }
+      }
+    } else {
+      appendLog(`[Manager] ERROR: La descarga o validación falló (Código: ${code}).`);
+      if (fs.existsSync(backupDir)) {
+        appendLog(`[Manager] Restaurando versión anterior desde el backup...`);
+        try {
+          if (fs.existsSync(PZ_SERVER_DIR)) {
+            fs.rmSync(PZ_SERVER_DIR, { recursive: true, force: true });
+          }
+          fs.renameSync(backupDir, PZ_SERVER_DIR);
+          appendLog(`[Manager] Restauración completada. El servidor se mantiene en la versión anterior.`);
+        } catch (err) {
+          appendLog(`[Manager] Error crítico al restaurar la versión anterior: ${err.message}`);
+        }
+      } else {
+        appendLog(`[Manager] No hay versión anterior para restaurar.`);
+      }
     }
+    
     pzStatus = 'STOPPED';
     steamCmdProcess = null;
     broadcast({ type: 'status_update', data: getStatus() });
