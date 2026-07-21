@@ -7,7 +7,7 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "${PORT:-3001}:${PORT:-3001}"
       # --- PUERTOS DE CONEXIÓN DE JUEGO (UDP) ---
       # Project Zomboid requiere abrir estos puertos UDP directamente en el host
       - "16261:16261/udp" # Puerto principal del servidor de juego
@@ -15,7 +15,7 @@ services:
       - "8766:8766/udp" # Puerto Steam Query
 
     environment:
-      - PORT=${PORT:-3000}
+      - PORT=${PORT:-3001}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD}
       - JWT_SECRET=${JWT_SECRET}
       - SERVER_NAME=${SERVER_NAME:-servertest}
