@@ -5,7 +5,7 @@ echo "=== Iniciando Entrypoint de Zomboid Web Portal ==="
 
 # Asegurar que los directorios necesarios existan en el volumen persistente
 mkdir -p /home/steam/data/pzserver
-mkdir -p /home/steam/data/Zomboid
+mkdir -p /home/steam/data/Zomboid/mods
 
 INSTALLED_BRANCH_FILE="/home/steam/data/installed_branch.txt"
 CURRENT_BRANCH=""

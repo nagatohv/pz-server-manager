@@ -282,11 +282,12 @@ export function startServer() {
         }
 
         // Detectar si el servidor ya terminó de cargar
+        const lowerLine = line.toLowerCase();
         if (pzStatus === 'STARTING' && (
-          line.includes('Zomboid Server is running') || 
-          line.includes('RakNet startup') || 
-          line.includes('Server started') ||
-          line.includes('reborn')
+          lowerLine.includes('zomboid server is running') || 
+          lowerLine.includes('raknet startup') || 
+          lowerLine.includes('server started') ||
+          lowerLine.includes('reborn')
         )) {
           pzStatus = 'RUNNING';
           broadcast({ type: 'status_update', data: getStatus() });
