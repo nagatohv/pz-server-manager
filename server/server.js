@@ -2,10 +2,9 @@ import 'dotenv/config';
 import express from 'express';
 import http from 'http';
 import { WebSocketServer } from 'ws';
-import path from 'url';
 import cors from 'cors';
 import { fileURLToPath } from 'url';
-import { dirname } from 'path';
+import path, { dirname } from 'path';
 
 import { authenticate, authenticateWS, generateToken, verifyPassword } from './auth.js';
 import * as pzManager from './pz-manager.js';
@@ -22,7 +21,7 @@ app.use(cors());
 app.use(express.json());
 
 // Servir frontend compilado de React (en producción)
-const clientDistPath = path.fileURLToPath(new URL('../client/dist', import.meta.url));
+const clientDistPath = fileURLToPath(new URL('../client/dist', import.meta.url));
 app.use(express.static(clientDistPath));
 
 // --- RUTAS DE API ---
