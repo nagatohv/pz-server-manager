@@ -385,12 +385,26 @@ export function stopServer() {
 
   broadcast({ type: 'status_update', data: getStatus() });
 
-  // Enviar comando para guardar
-  sendCommand('save');
+  // Enviar comandos de apagado directamente al proceso
+  if (pzProcess) {
+    appendLog('[Admin Input] > save');
+    try {
+      pzProcess.stdin.write('save\n');
+    } catch (err) {
+      appendLog(`[Manager] Error al enviar comando save: ${err.message}`);
+    }
+  }
   
   // Esperar 5 segundos antes de enviar quit para dar tiempo a guardar
   setTimeout(() => {
-    sendCommand('quit');
+    if (pzProcess) {
+      appendLog('[Admin Input] > quit');
+      try {
+        pzProcess.stdin.write('quit\n');
+      } catch (err) {
+        appendLog(`[Manager] Error al enviar comando quit: ${err.message}`);
+      }
+    }
   }, 5000);
 
   // Configurar un timeout de seguridad por si el proceso se cuelga al cerrar
