@@ -248,15 +248,26 @@ export function startServer() {
     fs.mkdirSync(ZO_USER_DIR, { recursive: true });
   }
 
-  // Ejecutar el script. Project Zomboid usa el directorio actual para algunas dependencias
-  pzProcess = spawn('bash', [
-    scriptPath,
+  // Ejecutar el binario de Project Zomboid directamente para control de E/S directo
+  const binaryPath = path.join(PZ_SERVER_DIR, 'ProjectZomboid64');
+  if (!fs.existsSync(binaryPath)) {
+    return { error: `No se encontró el ejecutable principal en ${binaryPath}.` };
+  }
+
+  const env = {
+    ...process.env,
+    PATH: `${path.join(PZ_SERVER_DIR, 'jre64/bin')}:${process.env.PATH || ''}`,
+    LD_LIBRARY_PATH: `${path.join(PZ_SERVER_DIR, 'linux64')}:${path.join(PZ_SERVER_DIR, 'natives')}:${PZ_SERVER_DIR}:${path.join(PZ_SERVER_DIR, 'jre64/lib/amd64')}:${process.env.LD_LIBRARY_PATH || ''}`,
+    LD_PRELOAD: process.env.LD_PRELOAD ? `${process.env.LD_PRELOAD}:libjsig.so` : 'libjsig.so'
+  };
+
+  pzProcess = spawn(binaryPath, [
     '-cachedir=' + ZO_USER_DIR,
     '-servername', SERVER_NAME,
     '-adminpassword', process.env.ADMIN_PASSWORD || 'admin'
   ], {
     cwd: PZ_SERVER_DIR,
-    env: { ...process.env }
+    env
   });
 
   pzProcess.stdout.on('data', (data) => {
@@ -409,9 +420,19 @@ export function stopServer() {
 
   // Configurar un timeout de seguridad por si el proceso se cuelga al cerrar
   setTimeout(() => {
-    if (pzProcess) {
+    const javaPid = findZomboidPid();
+    if (pzProcess || javaPid) {
       appendLog('[Manager] El servidor no se detuvo a tiempo. Forzando cierre (SIGKILL)...');
-      pzProcess.kill('SIGKILL');
+      if (javaPid) {
+        try {
+          process.kill(javaPid, 'SIGKILL');
+        } catch (e) {}
+      }
+      if (pzProcess) {
+        try {
+          pzProcess.kill('SIGKILL');
+        } catch (e) {}
+      }
       pzStatus = 'STOPPED';
       pzProcess = null;
       broadcast({ type: 'status_update', data: getStatus() });
@@ -422,12 +443,31 @@ export function stopServer() {
 }
 
 export function killServer() {
-  if (!pzProcess) {
-    return { error: 'No hay ningún proceso activo que detener.' };
+  const javaPid = findZomboidPid();
+  if (!pzProcess && !javaPid) {
+    return { error: 'No se detectó ningún proceso activo de Project Zomboid.' };
   }
 
   appendLog('[Manager] Deteniendo servidor de forma forzosa (SIGKILL)...');
-  pzProcess.kill('SIGKILL');
+  
+  if (javaPid) {
+    appendLog(`[Manager] Enviando SIGKILL al PID de Java real: ${javaPid}`);
+    try {
+      process.kill(javaPid, 'SIGKILL');
+    } catch (err) {
+      appendLog(`[Manager] Error al matar PID de Java: ${err.message}`);
+    }
+  }
+
+  if (pzProcess) {
+    appendLog(`[Manager] Enviando SIGKILL al proceso principal de spawn: ${pzProcess.pid}`);
+    try {
+      pzProcess.kill('SIGKILL');
+    } catch (err) {
+      // Ignorar si ya se cerró
+    }
+  }
+
   pzStatus = 'STOPPED';
   pzProcess = null;
 
