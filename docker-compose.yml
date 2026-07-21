@@ -7,6 +7,7 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     ports:
+      - "3000:3000"
       # --- PUERTOS DE CONEXIÓN DE JUEGO (UDP) ---
       # Project Zomboid requiere abrir estos puertos UDP directamente en el host
       - "16261:16261/udp" # Puerto principal del servidor de juego

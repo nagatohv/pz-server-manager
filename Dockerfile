@@ -32,6 +32,7 @@ RUN cd client && npm run build
 # Copiar archivos del servidor e instalar dependencias
 COPY server/package*.json ./server/
 RUN cd server && npm install --only=production
+COPY server/ ./server/
 
 
 # --- ETAPA DE PRODUCCIÓN ---
