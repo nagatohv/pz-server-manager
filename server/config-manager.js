@@ -181,3 +181,192 @@ export function savePanelConfig(config) {
     throw new Error(`Error al guardar panel_config.json: ${err.message}`);
   }
 }
+
+export function parseIniFileWithDescriptions() {
+  const rawStructure = parseIniFile();
+  const settings = [];
+  let currentComments = [];
+  
+  for (const item of rawStructure) {
+    if (item.type === 'comment') {
+      const cleanComment = item.value.replace(/^[#;]\s*/, '').trim();
+      if (cleanComment) {
+        currentComments.push(cleanComment);
+      }
+    } else if (item.type === 'setting') {
+      settings.push({
+        key: item.key,
+        value: item.value,
+        description: currentComments.join(' ')
+      });
+      currentComments = [];
+    }
+  }
+  return settings;
+}
+
+export function parseSandboxVars(content) {
+  const values = {};
+  const descriptions = {};
+  const lines = content.split(/\r?\n/);
+  
+  let currentGroup = values;
+  const groupStack = [];
+  let currentGroupPath = '';
+  const pathStack = [];
+  
+  let pendingComments = [];
+  
+  for (let line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    
+    // Detectar comentarios
+    if (trimmed.startsWith('--')) {
+      const commentText = trimmed.replace(/^--\s*/, '').trim();
+      if (commentText) {
+        pendingComments.push(commentText);
+      }
+      continue;
+    }
+    
+    // Si no es un comentario, ver si tiene comentario al final de la línea
+    let cleanLine = trimmed;
+    const commentIndex = cleanLine.indexOf('--');
+    if (commentIndex !== -1) {
+      const inlineComment = cleanLine.substring(commentIndex).replace(/^--\s*/, '').trim();
+      if (inlineComment) {
+        pendingComments.push(inlineComment);
+      }
+      cleanLine = cleanLine.substring(0, commentIndex).trim();
+    }
+    
+    // Detectar fin de grupo
+    if (cleanLine === '}' || cleanLine === '},') {
+      if (groupStack.length > 0) {
+        currentGroup = groupStack.pop();
+        currentGroupPath = pathStack.pop();
+      }
+      pendingComments = []; // Descartar comentarios huérfanos al final de un grupo
+      continue;
+    }
+    
+    // Detectar inicio de grupo: Group = {
+    const groupMatch = cleanLine.match(/^([a-zA-Z0-9_]+)\s*=\s*\{$/);
+    if (groupMatch) {
+      const groupName = groupMatch[1];
+      if (groupName !== 'SandboxVars') {
+        currentGroup[groupName] = {};
+        
+        const fullPath = currentGroupPath ? `${currentGroupPath}.${groupName}` : groupName;
+        if (pendingComments.length > 0) {
+          descriptions[fullPath] = pendingComments.join(' ');
+          pendingComments = [];
+        }
+        
+        groupStack.push(currentGroup);
+        pathStack.push(currentGroupPath);
+        
+        currentGroup = currentGroup[groupName];
+        currentGroupPath = fullPath;
+      }
+      continue;
+    }
+    
+    // Detectar asignación: Key = Value,
+    const assignMatch = cleanLine.match(/^([a-zA-Z0-9_]+)\s*=\s*(.*?),?$/);
+    if (assignMatch) {
+      const key = assignMatch[1];
+      let rawVal = assignMatch[2].trim();
+      if (rawVal.endsWith(',')) rawVal = rawVal.slice(0, -1).trim();
+      
+      let val = rawVal;
+      if (rawVal === 'true') val = true;
+      else if (rawVal === 'false') val = false;
+      else if (!isNaN(Number(rawVal))) val = Number(rawVal);
+      else if ((rawVal.startsWith('"') && rawVal.endsWith('"')) || (rawVal.startsWith("'") && rawVal.endsWith("'"))) {
+        val = rawVal.slice(1, -1);
+      }
+      
+      currentGroup[key] = val;
+      
+      const fullPath = currentGroupPath ? `${currentGroupPath}.${key}` : key;
+      if (pendingComments.length > 0) {
+        descriptions[fullPath] = pendingComments.join(' ');
+        pendingComments = [];
+      }
+    }
+  }
+  
+  return { values, descriptions };
+}
+
+export function serializeSandboxVars(obj) {
+  let lua = "SandboxVars = {\n";
+  
+  function serializeGroup(group, indent) {
+    let content = "";
+    for (const [key, val] of Object.entries(group)) {
+      if (val !== null && typeof val === 'object') {
+        content += `${indent}${key} = {\n`;
+        content += serializeGroup(val, indent + "    ");
+        content += `${indent}},\n`;
+      } else {
+        let formattedVal = val;
+        if (typeof val === 'string') {
+          formattedVal = `"${val}"`;
+        } else if (typeof val === 'boolean') {
+          formattedVal = val ? 'true' : 'false';
+        }
+        content += `${indent}${key} = ${formattedVal},\n`;
+      }
+    }
+    return content;
+  }
+
+  lua += serializeGroup(obj, "    ");
+  lua += "}\n";
+  return lua;
+}
+
+export function parseSpawnRegions(content) {
+  const result = [];
+  const lines = content.split(/\r?\n/);
+  for (let line of lines) {
+    const cleanLine = line.trim();
+    const match = cleanLine.match(/(?:--)?\s*\{\s*name\s*=\s*"([^"]+)"\s*(?:,\s*(file|serverfile)\s*=\s*"([^"]+)")?\s*\}/);
+    if (match) {
+      const name = match[1];
+      const type = match[2];
+      const filePath = match[3];
+      const isCommented = cleanLine.startsWith('--');
+      
+      const region = { name, isCommented };
+      if (type) {
+        region[type] = filePath;
+      }
+      result.push(region);
+    }
+  }
+  return result;
+}
+
+export function serializeSpawnRegions(regions) {
+  let lua = "function SpawnRegions()\n\treturn {\n";
+  for (const r of regions) {
+    let line = `\t\t{ name = "${r.name}"`;
+    if (r.file) {
+      line += `, file = "${r.file}"`;
+    } else if (r.serverfile) {
+      line += `, serverfile = "${r.serverfile}"`;
+    }
+    line += " },";
+    if (r.isCommented) {
+      lua += `\t\t--${line.trim()}\n`;
+    } else {
+      lua += `${line}\n`;
+    }
+  }
+  lua += "\t}\nend\n";
+  return lua;
+}

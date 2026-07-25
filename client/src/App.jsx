@@ -71,10 +71,14 @@ export default function App() {
   const [panelConfig, setPanelConfig] = useState({ idleShutdownMinutes: 0 });
   const [timeLeft, setTimeLeft] = useState(0);
   
-  // Estados del Editor Avanzado
+  // Estados del Editor Avanzado e Interactivo (GUI)
   const [rawEditorType, setRawEditorType] = useState('ini');
   const [rawContent, setRawContent] = useState('');
   const [rawMessage, setRawMessage] = useState('');
+  const [editorViewMode, setEditorViewMode] = useState('gui'); // 'gui' o 'advanced'
+  const [parsedConfigData, setParsedConfigData] = useState(null);
+  const [guiSearchTerm, setGuiSearchTerm] = useState('');
+  const [activeSandboxSection, setActiveSandboxSection] = useState('General');
 
   // Estados de Mods
   const [newModId, setNewModId] = useState('');
@@ -209,8 +213,12 @@ export default function App() {
     try {
       const data = await apiCall(`/api/config/raw/${type}`);
       setRawContent(data.content || '');
+
+      // Intentar cargar la versión parseada
+      const parsedRes = await apiCall(`/api/config/parsed/${type}`);
+      setParsedConfigData(parsedRes.data);
     } catch (err) {
-      alert('Error al cargar archivo crudo: ' + err.message);
+      alert('Error al cargar archivo: ' + err.message);
     }
   };
 
@@ -219,10 +227,113 @@ export default function App() {
     try {
       await apiCall(`/api/config/raw/${rawEditorType}`, 'POST', { content: rawContent });
       setRawMessage('✓ Archivo guardado correctamente.');
+      // Sincronizar versión parseada
+      const parsedRes = await apiCall(`/api/config/parsed/${rawEditorType}`);
+      setParsedConfigData(parsedRes.data);
       setTimeout(() => setRawMessage(''), 4000);
     } catch (err) {
       setRawMessage('✗ Error al guardar: ' + err.message);
     }
+  };
+
+  const handleSaveGui = async () => {
+    setRawMessage('');
+    try {
+      let dataToSave = parsedConfigData;
+      if (rawEditorType === 'ini') {
+        const settingsObj = {};
+        parsedConfigData.forEach(item => {
+          settingsObj[item.key] = item.value;
+        });
+        dataToSave = settingsObj;
+      }
+      
+      await apiCall(`/api/config/parsed/${rawEditorType}`, 'POST', { data: dataToSave });
+      setRawMessage('✓ Configuración visual guardada.');
+      // Sincronizar editor crudo
+      const rawRes = await apiCall(`/api/config/raw/${rawEditorType}`);
+      setRawContent(rawRes.content || '');
+      setTimeout(() => setRawMessage(''), 4000);
+    } catch (err) {
+      setRawMessage('✗ Error al guardar: ' + err.message);
+    }
+  };
+
+  // Helper para SandboxVars de LUA
+  const updateSandboxValue = (path, newVal) => {
+    if (!parsedConfigData || !parsedConfigData.values) return;
+    const updated = { ...parsedConfigData };
+    const parts = path.split('.');
+    if (parts.length === 1) {
+      updated.values[parts[0]] = newVal;
+    } else if (parts.length === 2) {
+      if (!updated.values[parts[0]]) updated.values[parts[0]] = {};
+      updated.values[parts[0]][parts[1]] = newVal;
+    }
+    setParsedConfigData(updated);
+  };
+
+  const getSandboxFields = () => {
+    if (!parsedConfigData || !parsedConfigData.values) return [];
+    const { values, descriptions } = parsedConfigData;
+    
+    if (activeSandboxSection === 'General') {
+      return Object.entries(values)
+        .filter(([_, val]) => val === null || typeof val !== 'object')
+        .map(([key, val]) => ({ key, value: val, path: key, description: descriptions[key] }));
+    } else if (activeSandboxSection === 'Configuración Zombis') {
+      const group = values.ZombieConfig || {};
+      return Object.entries(group).map(([key, val]) => ({
+        key,
+        value: val,
+        path: `ZombieConfig.${key}`,
+        description: descriptions[`ZombieConfig.${key}`]
+      }));
+    } else if (activeSandboxSection === 'Multiplicadores XP') {
+      const group = values.MultiplierConfig || {};
+      return Object.entries(group).map(([key, val]) => ({
+        key,
+        value: val,
+        path: `MultiplierConfig.${key}`,
+        description: descriptions[`MultiplierConfig.${key}`]
+      }));
+    } else {
+      const fields = [];
+      Object.entries(values)
+        .filter(([key, val]) => val !== null && typeof val === 'object' && key !== 'ZombieConfig' && key !== 'MultiplierConfig')
+        .forEach(([subgroupName, subgroupVal]) => {
+          Object.entries(subgroupVal).forEach(([key, val]) => {
+            fields.push({
+              key: `${subgroupName} > ${key}`,
+              value: val,
+              path: `${subgroupName}.${key}`,
+              description: descriptions[`${subgroupName}.${key}`]
+            });
+          });
+        });
+      return fields;
+    }
+  };
+
+  // Helper para SpawnRegions de LUA
+  const addSpawnRegion = () => {
+    const updated = [...(parsedConfigData || [])];
+    updated.push({ name: 'Nuevo Punto', file: 'media/maps/Muldraugh, KY/spawnpoints.lua', isCommented: false });
+    setParsedConfigData(updated);
+  };
+
+  const removeSpawnRegion = (index) => {
+    const updated = [...parsedConfigData];
+    updated.splice(index, 1);
+    setParsedConfigData(updated);
+  };
+
+  const updateSpawnRegion = (index, key, val) => {
+    const updated = [...parsedConfigData];
+    updated[index] = { ...updated[index], [key]: val };
+    if (key === 'file') delete updated[index].serverfile;
+    if (key === 'serverfile') delete updated[index].file;
+    setParsedConfigData(updated);
   };
 
   // Conectar WebSocket para Logs y Estado
@@ -826,8 +937,8 @@ export default function App() {
 
         {activeTab === 'editor' && (
           <div className="editor-layout">
-            <div className="editor-header-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div className="editor-selector">
+            <div className="editor-header-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
+              <div className="editor-selector" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                 <button 
                   className={`editor-selector-btn ${rawEditorType === 'ini' ? 'active' : ''}`}
                   onClick={() => setRawEditorType('ini')}
@@ -847,20 +958,295 @@ export default function App() {
                   {statusData.config.serverName}_spawnregions.lua
                 </button>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                {rawMessage && <span style={{ fontSize: '0.85rem', fontWeight: '600' }}>{rawMessage}</span>}
-                <button className="btn btn-primary" onClick={saveRawContent} style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}>
-                  Guardar Archivo Crudo
-                </button>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                {/* Selector de modo: GUI vs Texto */}
+                <div style={{ display: 'flex', gap: '0.25rem', background: 'rgba(15, 23, 42, 0.4)', padding: '0.25rem', borderRadius: '8px', border: '1px solid rgba(139, 92, 246, 0.2)' }}>
+                  <button 
+                    type="button"
+                    onClick={() => setEditorViewMode('gui')}
+                    style={{ border: 'none', padding: '0.4rem 0.8rem', borderRadius: '6px', fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer', background: editorViewMode === 'gui' ? 'var(--primary)' : 'transparent', color: 'white', transition: 'all 0.2s' }}
+                  >
+                    Editor Visual (GUI)
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => setEditorViewMode('advanced')}
+                    style={{ border: 'none', padding: '0.4rem 0.8rem', borderRadius: '6px', fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer', background: editorViewMode === 'advanced' ? 'var(--primary)' : 'transparent', color: 'white', transition: 'all 0.2s' }}
+                  >
+                    Texto Avanzado
+                  </button>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  {rawMessage && <span style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--primary)' }}>{rawMessage}</span>}
+                  <button 
+                    className="btn btn-primary" 
+                    onClick={editorViewMode === 'gui' ? handleSaveGui : saveRawContent}
+                    style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}
+                  >
+                    Guardar Cambios
+                  </button>
+                </div>
               </div>
             </div>
-            
-            <textarea
-              className="raw-textarea"
-              value={rawContent}
-              onChange={(e) => setRawContent(e.target.value)}
-              placeholder="Cargando configuración... (Si el archivo está vacío, el servidor aún no lo ha generado o puedes escribir su contenido y guardarlo aquí)."
-            />
+
+            {editorViewMode === 'gui' ? (
+              <div className="gui-editor-container" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {/* Barra de búsqueda común */}
+                {rawEditorType !== 'spawn' && (
+                  <div style={{ position: 'relative', width: '100%' }}>
+                    <input 
+                      type="text"
+                      className="form-control"
+                      placeholder="🔍 Buscar parámetro por nombre o descripción..."
+                      value={guiSearchTerm}
+                      onChange={(e) => setGuiSearchTerm(e.target.value)}
+                      style={{ width: '100%', paddingLeft: '2.5rem', background: 'rgba(15, 23, 42, 0.3)', borderColor: 'var(--border-color)' }}
+                    />
+                  </div>
+                )}
+
+                {/* GUI: SERVER.INI */}
+                {rawEditorType === 'ini' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    {!parsedConfigData || !Array.isArray(parsedConfigData) ? (
+                      <div className="empty-list-placeholder">Cargando datos del servidor...</div>
+                    ) : (
+                      <div className="gui-settings-grid" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem', maxHeight: '55vh', overflowY: 'auto', paddingRight: '0.5rem' }}>
+                        {parsedConfigData
+                          .filter(item => {
+                            const search = guiSearchTerm.toLowerCase();
+                            return item.key.toLowerCase().includes(search) || (item.description && item.description.toLowerCase().includes(search));
+                          })
+                          .map((item, index) => {
+                            const actualIndex = parsedConfigData.findIndex(u => u.key === item.key);
+                            return (
+                              <div key={index} className="gui-setting-card" style={{ background: 'rgba(15, 23, 42, 0.3)', border: '1px solid var(--border-color)', padding: '1rem', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                                  <span style={{ fontWeight: '600', color: 'white', fontSize: '0.9rem', fontFamily: 'var(--font-header)' }}>{item.key}</span>
+                                  {item.value === 'true' || item.value === 'false' ? (
+                                    <select 
+                                      className="form-control"
+                                      style={{ width: '120px', padding: '0.25rem 0.5rem', fontSize: '0.85rem', background: 'rgba(15, 23, 42, 0.6)', color: 'white' }}
+                                      value={item.value}
+                                      onChange={(e) => {
+                                        const updated = [...parsedConfigData];
+                                        updated[actualIndex].value = e.target.value;
+                                        setParsedConfigData(updated);
+                                      }}
+                                    >
+                                      <option value="true">True</option>
+                                      <option value="false">False</option>
+                                    </select>
+                                  ) : (
+                                    <input 
+                                      type="text"
+                                      className="form-control"
+                                      style={{ width: '260px', padding: '0.25rem 0.5rem', fontSize: '0.85rem', background: 'rgba(15, 23, 42, 0.6)', color: 'white' }}
+                                      value={item.value || ''}
+                                      onChange={(e) => {
+                                        const updated = [...parsedConfigData];
+                                        updated[actualIndex].value = e.target.value;
+                                        setParsedConfigData(updated);
+                                      }}
+                                    />
+                                  )}
+                                </div>
+                                {item.description && (
+                                  <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>{item.description}</p>
+                                )}
+                              </div>
+                            );
+                          })}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* GUI: SANDBOXVARS.LUA */}
+                {rawEditorType === 'sandbox' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
+                    {/* Sub-selector de categorías del Sandbox */}
+                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
+                      {['General', 'Configuración Zombis', 'Multiplicadores XP', 'Otros Subgrupos'].map(sec => (
+                        <button
+                          key={sec}
+                          type="button"
+                          onClick={() => setActiveSandboxSection(sec)}
+                          style={{
+                            border: 'none',
+                            background: 'transparent',
+                            padding: '0.4rem 0.8rem',
+                            color: activeSandboxSection === sec ? 'var(--primary)' : 'var(--text-secondary)',
+                            borderBottom: activeSandboxSection === sec ? '2px solid var(--primary)' : 'none',
+                            fontSize: '0.85rem',
+                            fontWeight: '600',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {sec}
+                        </button>
+                      ))}
+                    </div>
+
+                    {!parsedConfigData || !parsedConfigData.values ? (
+                      <div className="empty-list-placeholder">Cargando variables del Sandbox...</div>
+                    ) : (
+                      <div className="gui-settings-grid" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem', maxHeight: '48vh', overflowY: 'auto', paddingRight: '0.5rem' }}>
+                        {getSandboxFields()
+                          .filter(field => {
+                            const search = guiSearchTerm.toLowerCase();
+                            return field.key.toLowerCase().includes(search) || (field.description && field.description.toLowerCase().includes(search));
+                          })
+                          .map((field, index) => (
+                            <div key={index} className="gui-setting-card" style={{ background: 'rgba(15, 23, 42, 0.3)', border: '1px solid var(--border-color)', padding: '1rem', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                                <span style={{ fontWeight: '600', color: 'white', fontSize: '0.9rem', fontFamily: 'var(--font-header)' }}>{field.key}</span>
+                                {typeof field.value === 'boolean' ? (
+                                  <select 
+                                    className="form-control"
+                                    style={{ width: '120px', padding: '0.25rem 0.5rem', fontSize: '0.85rem', background: 'rgba(15, 23, 42, 0.6)', color: 'white' }}
+                                    value={field.value ? 'true' : 'false'}
+                                    onChange={(e) => updateSandboxValue(field.path, e.target.value === 'true')}
+                                  >
+                                    <option value="true">True</option>
+                                    <option value="false">False</option>
+                                  </select>
+                                ) : typeof field.value === 'number' ? (
+                                  <input 
+                                    type="number"
+                                    step="any"
+                                    className="form-control"
+                                    style={{ width: '160px', padding: '0.25rem 0.5rem', fontSize: '0.85rem', background: 'rgba(15, 23, 42, 0.6)', color: 'white' }}
+                                    value={field.value !== undefined ? field.value : ''}
+                                    onChange={(e) => updateSandboxValue(field.path, parseFloat(e.target.value) || 0)}
+                                  />
+                                ) : (
+                                  <input 
+                                    type="text"
+                                    className="form-control"
+                                    style={{ width: '260px', padding: '0.25rem 0.5rem', fontSize: '0.85rem', background: 'rgba(15, 23, 42, 0.6)', color: 'white' }}
+                                    value={field.value || ''}
+                                    onChange={(e) => updateSandboxValue(field.path, e.target.value)}
+                                  />
+                                )}
+                              </div>
+                              {field.description && (
+                                <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>{field.description}</p>
+                              )}
+                            </div>
+                          ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* GUI: SPAWNREGIONS.LUA */}
+                {rawEditorType === 'spawn' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <h4 style={{ margin: 0, color: 'var(--primary)' }}>Regiones de Aparición Activas</h4>
+                      <button type="button" className="btn btn-secondary" onClick={addSpawnRegion} style={{ fontSize: '0.8rem', padding: '0.4rem 0.8rem' }}>
+                        + Añadir Punto
+                      </button>
+                    </div>
+
+                    {!parsedConfigData || !Array.isArray(parsedConfigData) ? (
+                      <div className="empty-list-placeholder">Cargando puntos de aparición...</div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', maxHeight: '50vh', overflowY: 'auto' }}>
+                        {parsedConfigData.map((region, index) => (
+                          <div key={index} className="gui-setting-card" style={{ background: 'rgba(15, 23, 42, 0.3)', border: '1px solid var(--border-color)', padding: '1rem', borderRadius: '8px', display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                            {/* Switch de habilitación */}
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.85rem' }}>
+                              <input 
+                                type="checkbox"
+                                checked={!region.isCommented}
+                                onChange={(e) => updateSpawnRegion(index, 'isCommented', !e.target.checked)}
+                              />
+                              Habilitado
+                            </label>
+
+                            {/* Nombre del punto */}
+                            <div style={{ flex: '1', minWidth: '160px' }}>
+                              <input 
+                                type="text"
+                                className="form-control"
+                                placeholder="Nombre de la Región (ej: Muldraugh, KY)"
+                                value={region.name || ''}
+                                onChange={(e) => updateSpawnRegion(index, 'name', e.target.value)}
+                                style={{ background: 'rgba(15, 23, 42, 0.6)', color: 'white' }}
+                              />
+                            </div>
+
+                            {/* Selector de origen (archivo base vs archivo personalizado) */}
+                            <div style={{ minWidth: '130px' }}>
+                              <select
+                                className="form-control"
+                                value={region.serverfile !== undefined ? 'server' : 'base'}
+                                onChange={(e) => {
+                                  if (e.target.value === 'server') {
+                                    updateSpawnRegion(index, 'serverfile', `${statusData.config.serverName}_spawnpoints.lua`);
+                                  } else {
+                                    updateSpawnRegion(index, 'file', `media/maps/${region.name || 'Muldraugh, KY'}/spawnpoints.lua`);
+                                  }
+                                }}
+                                style={{ background: 'rgba(15, 23, 42, 0.6)', color: 'white' }}
+                              >
+                                <option value="base">Archivo Base</option>
+                                <option value="server">Archivo del Servidor</option>
+                              </select>
+                            </div>
+
+                            {/* Ruta del archivo */}
+                            <div style={{ flex: '2', minWidth: '220px' }}>
+                              <input 
+                                type="text"
+                                className="form-control"
+                                placeholder="Ruta del archivo Lua"
+                                value={region.file || region.serverfile || ''}
+                                onChange={(e) => {
+                                  if (region.serverfile !== undefined) {
+                                    updateSpawnRegion(index, 'serverfile', e.target.value);
+                                  } else {
+                                    updateSpawnRegion(index, 'file', e.target.value);
+                                  }
+                                }}
+                                style={{ background: 'rgba(15, 23, 42, 0.6)', color: 'white' }}
+                              />
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => removeSpawnRegion(index)}
+                              style={{
+                                background: 'transparent',
+                                border: 'none',
+                                color: 'var(--danger)',
+                                cursor: 'pointer',
+                                fontSize: '1.2rem',
+                                padding: '0 0.5rem'
+                              }}
+                              title="Eliminar punto de spawn"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <textarea
+                className="raw-textarea"
+                value={rawContent}
+                onChange={(e) => setRawContent(e.target.value)}
+                placeholder="Cargando configuración... (Si el archivo está vacío, el servidor aún no lo ha generado o puedes escribir su contenido y guardarlo aquí)."
+              />
+            )}
           </div>
         )}
       </main>

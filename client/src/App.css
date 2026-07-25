@@ -645,6 +645,48 @@ body {
   box-shadow: 0 0 10px rgba(127, 90, 240, 0.15);
 }
 
+/* Estilos para el Editor Visual (GUI) */
+.view-mode-btn:hover {
+  background: rgba(139, 92, 246, 0.15) !important;
+}
+.view-mode-btn.active:hover {
+  background: var(--primary) !important;
+}
+
+.gui-editor-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.gui-settings-grid::-webkit-scrollbar {
+  width: 6px;
+}
+
+.gui-settings-grid::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.01);
+  border-radius: 4px;
+}
+
+.gui-settings-grid::-webkit-scrollbar-thumb {
+  background: rgba(139, 92, 246, 0.3);
+  border-radius: 4px;
+}
+
+.gui-settings-grid::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+}
+
+.gui-setting-card {
+  transition: all 0.2s ease-in-out;
+}
+
+.gui-setting-card:hover {
+  border-color: rgba(0, 242, 254, 0.3) !important;
+  box-shadow: 0 4px 12px rgba(0, 242, 254, 0.03);
+  background: rgba(15, 23, 42, 0.45) !important;
+}
+
 /* --- PANTALLA DE LOGIN --- */
 
 .login-wrapper {

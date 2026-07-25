@@ -162,6 +162,59 @@ app.post('/api/config/raw/:type', authenticate, (req, res) => {
   }
 });
 
+// Obtener Contenido Parseado (para GUI interactiva)
+app.get('/api/config/parsed/:type', authenticate, (req, res) => {
+  const { type } = req.params;
+  try {
+    const rawContent = configManager.readRawFile(type);
+    if (!rawContent) {
+      return res.json({ data: null });
+    }
+    
+    let parsedData = null;
+    if (type === 'sandbox') {
+      parsedData = configManager.parseSandboxVars(rawContent);
+    } else if (type === 'spawn') {
+      parsedData = configManager.parseSpawnRegions(rawContent);
+    } else if (type === 'ini') {
+      parsedData = configManager.parseIniFileWithDescriptions();
+    } else {
+      return res.status(400).json({ error: 'Tipo de archivo no soportado para análisis GUI' });
+    }
+    res.json({ data: parsedData });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Guardar Contenido Parseado desde GUI interactiva
+app.post('/api/config/parsed/:type', authenticate, (req, res) => {
+  const { type } = req.params;
+  const { data } = req.body;
+  if (data === undefined) {
+    return res.status(400).json({ error: 'Datos no provistos' });
+  }
+
+  try {
+    let rawContent = '';
+    if (type === 'sandbox') {
+      rawContent = configManager.serializeSandboxVars(data);
+    } else if (type === 'spawn') {
+      rawContent = configManager.serializeSpawnRegions(data);
+    } else if (type === 'ini') {
+      configManager.saveIniSettings(data);
+      return res.json({ success: true });
+    } else {
+      return res.status(400).json({ error: 'Tipo de archivo no soportado para serialización GUI' });
+    }
+
+    const result = configManager.saveRawFile(type, rawContent);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Servir la app de React en cualquier ruta no controlada por la API (HTML5 routing)
 app.get('*', (req, res) => {
   res.sendFile(path.join(clientDistPath, 'index.html'));
