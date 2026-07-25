@@ -259,6 +259,34 @@ export default function App() {
     }
   };
 
+  const getIniSelectOptions = (key) => {
+    if (key === 'BadWordPolicy') {
+      return [
+        { value: '1', label: '1 - Banear (Ban)' },
+        { value: '2', label: '2 - Expulsar (Kick)' },
+        { value: '3', label: '3 - Registrar en Base de Datos (Log to DB)' },
+        { value: '4', label: '4 - Silenciar (Mute)' }
+      ];
+    }
+    if (key === 'MapRemotePlayerVisibility') {
+      return [
+        { value: '1', label: '1 - Oculto (Hidden)' },
+        { value: '2', label: '2 - Amigos (Friends)' },
+        { value: '3', label: '3 - Amigos y Jugadores Cercanos' },
+        { value: '4', label: '4 - Todos (Everyone)' }
+      ];
+    }
+    if (key.startsWith('AntiCheat') && key !== 'AntiCheatProtectionType' && !key.startsWith('AntiCheatProtectionType')) {
+      return [
+        { value: '1', label: '1 - Banear (Ban)' },
+        { value: '2', label: '2 - Expulsar (Kick)' },
+        { value: '3', label: '3 - Registrar en Base de Datos (Log to DB)' },
+        { value: '4', label: '4 - Desactivado / Solo Log (Ignore)' }
+      ];
+    }
+    return null;
+  };
+
   // Helper para SandboxVars de LUA
   const updateSandboxValue = (path, newVal) => {
     if (!parsedConfigData || !parsedConfigData.values) return;
@@ -707,6 +735,12 @@ export default function App() {
 
         {activeTab === 'config' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', width: '100%' }}>
+            {(statusData.status === 'RUNNING' || statusData.status === 'STARTING') && (
+              <div style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', padding: '1rem', borderRadius: '8px', color: '#f87171', fontSize: '0.85rem', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span>⚠️</span>
+                <span><strong>Servidor Activo:</strong> Detén el servidor antes de guardar cambios. De lo contrario, Zomboid los sobrescribirá con su configuración en memoria al apagarse o reiniciarse.</span>
+              </div>
+            )}
             {/* Widget de Control de Energía redundante */}
             <div style={{ background: 'rgba(15, 23, 42, 0.3)', border: '1px solid var(--border-color)', padding: '1.5rem', borderRadius: '12px' }}>
               <h3 style={{ fontFamily: 'var(--font-header)', fontSize: '1.1rem', fontWeight: 600, marginBottom: '1rem', color: 'var(--primary)', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
@@ -937,6 +971,12 @@ export default function App() {
 
         {activeTab === 'editor' && (
           <div className="editor-layout">
+            {(statusData.status === 'RUNNING' || statusData.status === 'STARTING') && (
+              <div style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', padding: '1rem', borderRadius: '8px', color: '#f87171', fontSize: '0.85rem', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                <span>⚠️</span>
+                <span><strong>Servidor Activo:</strong> Detén el servidor antes de guardar cambios. De lo contrario, Zomboid los sobrescribirá con su configuración en memoria al apagarse o reiniciarse.</span>
+              </div>
+            )}
             <div className="editor-header-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
               <div className="editor-selector" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                 <button 
@@ -1025,7 +1065,22 @@ export default function App() {
                               <div key={index} className="gui-setting-card" style={{ background: 'rgba(15, 23, 42, 0.3)', border: '1px solid var(--border-color)', padding: '1rem', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
                                   <span style={{ fontWeight: '600', color: 'white', fontSize: '0.9rem', fontFamily: 'var(--font-header)' }}>{item.key}</span>
-                                  {item.value === 'true' || item.value === 'false' ? (
+                                  {getIniSelectOptions(item.key) ? (
+                                    <select 
+                                      className="form-control"
+                                      style={{ width: '280px', padding: '0.25rem 0.5rem', fontSize: '0.85rem', background: 'rgba(15, 23, 42, 0.6)', color: 'white' }}
+                                      value={item.value}
+                                      onChange={(e) => {
+                                        const updated = [...parsedConfigData];
+                                        updated[actualIndex].value = e.target.value;
+                                        setParsedConfigData(updated);
+                                      }}
+                                    >
+                                      {getIniSelectOptions(item.key).map(opt => (
+                                        <option key={opt.value} value={opt.value} style={{ background: '#0f172a' }}>{opt.label}</option>
+                                      ))}
+                                    </select>
+                                  ) : item.value === 'true' || item.value === 'false' ? (
                                     <select 
                                       className="form-control"
                                       style={{ width: '120px', padding: '0.25rem 0.5rem', fontSize: '0.85rem', background: 'rgba(15, 23, 42, 0.6)', color: 'white' }}
@@ -1103,7 +1158,18 @@ export default function App() {
                             <div key={index} className="gui-setting-card" style={{ background: 'rgba(15, 23, 42, 0.3)', border: '1px solid var(--border-color)', padding: '1rem', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
                                 <span style={{ fontWeight: '600', color: 'white', fontSize: '0.9rem', fontFamily: 'var(--font-header)' }}>{field.key}</span>
-                                {typeof field.value === 'boolean' ? (
+                                {parsedConfigData.options && parsedConfigData.options[field.path] ? (
+                                   <select 
+                                     className="form-control"
+                                     style={{ width: '260px', padding: '0.25rem 0.5rem', fontSize: '0.85rem', background: 'rgba(15, 23, 42, 0.6)', color: 'white' }}
+                                     value={field.value}
+                                     onChange={(e) => updateSandboxValue(field.path, Number(e.target.value))}
+                                   >
+                                     {parsedConfigData.options[field.path].map(opt => (
+                                       <option key={opt.value} value={opt.value} style={{ background: '#0f172a' }}>{opt.label}</option>
+                                     ))}
+                                   </select>
+                                 ) : typeof field.value === 'boolean' ? (
                                   <select 
                                     className="form-control"
                                     style={{ width: '120px', padding: '0.25rem 0.5rem', fontSize: '0.85rem', background: 'rgba(15, 23, 42, 0.6)', color: 'white' }}

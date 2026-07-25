@@ -208,6 +208,7 @@ export function parseIniFileWithDescriptions() {
 export function parseSandboxVars(content) {
   const values = {};
   const descriptions = {};
+  const options = {};
   const lines = content.split(/\r?\n/);
   
   let currentGroup = values;
@@ -216,6 +217,34 @@ export function parseSandboxVars(content) {
   const pathStack = [];
   
   let pendingComments = [];
+  
+  function processPendingComments(fullPath) {
+    if (pendingComments.length === 0) return;
+    
+    const extractedOpts = [];
+    const cleanDescriptionLines = [];
+    
+    for (const commentLine of pendingComments) {
+      // Intentar coincidir con formatos como "1 = Insane" o "1 - Insane"
+      const optionMatch = commentLine.match(/^(\d+)\s*[=-]\s*(.*)$/);
+      if (optionMatch) {
+        extractedOpts.push({
+          value: Number(optionMatch[1]),
+          label: `${optionMatch[1]} - ${optionMatch[2].trim()}`
+        });
+      } else {
+        cleanDescriptionLines.push(commentLine);
+      }
+    }
+    
+    if (cleanDescriptionLines.length > 0) {
+      descriptions[fullPath] = cleanDescriptionLines.join(' ');
+    }
+    if (extractedOpts.length > 0) {
+      options[fullPath] = extractedOpts;
+    }
+    pendingComments = [];
+  }
   
   for (let line of lines) {
     const trimmed = line.trim();
@@ -259,10 +288,7 @@ export function parseSandboxVars(content) {
         currentGroup[groupName] = {};
         
         const fullPath = currentGroupPath ? `${currentGroupPath}.${groupName}` : groupName;
-        if (pendingComments.length > 0) {
-          descriptions[fullPath] = pendingComments.join(' ');
-          pendingComments = [];
-        }
+        processPendingComments(fullPath);
         
         groupStack.push(currentGroup);
         pathStack.push(currentGroupPath);
@@ -291,14 +317,11 @@ export function parseSandboxVars(content) {
       currentGroup[key] = val;
       
       const fullPath = currentGroupPath ? `${currentGroupPath}.${key}` : key;
-      if (pendingComments.length > 0) {
-        descriptions[fullPath] = pendingComments.join(' ');
-        pendingComments = [];
-      }
+      processPendingComments(fullPath);
     }
   }
   
-  return { values, descriptions };
+  return { values, descriptions, options };
 }
 
 export function serializeSandboxVars(obj) {
