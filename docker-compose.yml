@@ -5,29 +5,14 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     ports:
-      # Exposición del puerto Web HTTP adaptada para Dokploy:
-      # En producción con Dokploy, Traefik o Nginx Proxy Manager se comunican mediante la red Docker
-      # usando el puerto interno (EXPOSE 3000/3001 del contenedor), sin necesidad de publicar el puerto en el Host.
-      # Si deseas publicar el puerto directamente al Host (para desarrollo local), define en el .env:
-      # WEB_PORT_HOST=3001
+      # Exposición del puerto Web HTTP adaptada para Dokploy / Producción:
+      # Dokploy enruta el puerto configurado en el .env mediante su red interna.
+      # Si deseas publicar el puerto directamente al Host para desarrollo local, define en el .env: WEB_PORT_HOST=3001
       - "${WEB_PORT_HOST:+$WEB_PORT_HOST:}${PORT:-3001}"
       # --- PUERTOS DE CONEXIÓN DE JUEGO (UDP) ---
-      # Project Zomboid requiere abrir estos puertos UDP directamente en el host
       - "16261:16261/udp" # Puerto principal del servidor de juego
       - "16262:16262/udp" # Puerto de conexión directa de los clientes
       - "8766:8766/udp" # Puerto Steam Query
-
-    # --- ETIQUETAS PARA TRAEFIK (DOKPLOY) ---
-    # Dokploy inyecta su propio dominio y certificador Let's Encrypt mediante Traefik.
-    # Si despliegas mediante Dokploy UI las etiquetas se autogeneran, pero incluir estas
-    # permite que Traefik identifique correctamente el enrutamiento HTTP y el puerto del servicio.
-    labels:
-      - "traefik.enable=${TRAEFIK_ENABLE:-true}"
-      - "traefik.http.routers.pz-portal.rule=Host(`${DOMAIN:-localhost}`)"
-      - "traefik.http.routers.pz-portal.entrypoints=${TRAEFIK_ENTRYPOINTS:-web,websecure}"
-      - "traefik.http.routers.pz-portal.tls=${TRAEFIK_TLS:-true}"
-      - "traefik.http.routers.pz-portal.tls.certresolver=${TRAEFIK_CERTRESOLVER:-letsencrypt}"
-      - "traefik.http.services.pz-portal.loadbalancer.server.port=${PORT:-3001}"
 
     environment:
       - PORT=${PORT:-3001}
