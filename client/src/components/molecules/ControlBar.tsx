@@ -26,11 +26,12 @@ export const ControlBar: React.FC<ControlBarProps> = ({
   onUpdate
 }) => {
   const isRunning = status === ServerStatus.Running;
-  const isStopped = status === ServerStatus.Stopped;
+  const canStart = status === ServerStatus.Stopped || status === ServerStatus.Crashed;
+  const canKill = status !== ServerStatus.Stopped;
 
   return (
     <div className="control-bar">
-      <Button variant={ButtonVariant.Success} onClick={onStart} disabled={!isStopped} data-action={ServerAction.Start}>
+      <Button variant={ButtonVariant.Success} onClick={onStart} disabled={!canStart} data-action={ServerAction.Start}>
         <PlayIcon /> {CLIENT_STRINGS.CONTROL_BAR.START_SERVER}
       </Button>
 
@@ -42,7 +43,7 @@ export const ControlBar: React.FC<ControlBarProps> = ({
         <RestartIcon /> {CLIENT_STRINGS.CONTROL_BAR.RESTART_SERVER}
       </Button>
 
-      <Button variant={ButtonVariant.Danger} onClick={onKill} disabled={isStopped} data-action={ServerAction.Kill}>
+      <Button variant={ButtonVariant.Danger} onClick={onKill} disabled={!canKill} data-action={ServerAction.Kill}>
         <KillIcon /> {CLIENT_STRINGS.CONTROL_BAR.KILL_SERVER}
       </Button>
 
@@ -51,14 +52,14 @@ export const ControlBar: React.FC<ControlBarProps> = ({
           className="form-control control-bar__branch-select"
           value={selectedBranch}
           onChange={(e) => onBranchChange(e.target.value)}
-          disabled={!isStopped}
+          disabled={!canStart}
           aria-label="Steam branch selector"
         >
           <option value="">{CLIENT_STRINGS.CONTROL_BAR.BRANCH_STABLE}</option>
           <option value="unstable">{CLIENT_STRINGS.CONTROL_BAR.BRANCH_UNSTABLE}</option>
         </select>
 
-        <Button variant={ButtonVariant.Primary} onClick={onUpdate} disabled={!isStopped} data-action={ServerAction.Update}>
+        <Button variant={ButtonVariant.Primary} onClick={onUpdate} disabled={!canStart} data-action={ServerAction.Update}>
           <UpdateIcon /> {CLIENT_STRINGS.CONTROL_BAR.UPDATE_GAME}
         </Button>
       </div>

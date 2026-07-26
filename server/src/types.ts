@@ -19,6 +19,7 @@ export enum ServerStatus {
 export enum ServerAction {
   Start = 'start',
   Stop = 'stop',
+  Restart = 'restart',
   Kill = 'kill',
   Update = 'update',
   Command = 'command'

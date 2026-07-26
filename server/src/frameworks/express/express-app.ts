@@ -29,11 +29,12 @@ const ACTION_HANDLERS: Record<ServerAction, {
   handler: (uc: ControlServerUseCase, body: Record<string, string>) => { success?: boolean; error?: string };
   successMessage: string;
 }> = {
-  [ServerAction.Start]:   { handler: (uc) => uc.start(),              successMessage: 'Servidor iniciándose...' },
-  [ServerAction.Stop]:    { handler: (uc) => uc.stop(),               successMessage: 'Deteniendo servidor de forma segura...' },
-  [ServerAction.Kill]:    { handler: (uc) => uc.kill(),               successMessage: 'Servidor detenido forzosamente.' },
-  [ServerAction.Update]:  { handler: (uc, b) => uc.update(b.branch),  successMessage: 'Iniciando actualización del servidor...' },
-  [ServerAction.Command]: { handler: (uc, b) => uc.sendCommand(b.command), successMessage: 'Comando enviado con éxito.' }
+  [ServerAction.Start]:   { handler: (uc) => uc.start(),              successMessage: SERVER_STRINGS.MSG_ACTION_START },
+  [ServerAction.Stop]:    { handler: (uc) => uc.stop(),               successMessage: SERVER_STRINGS.MSG_ACTION_STOP },
+  [ServerAction.Restart]: { handler: (uc) => uc.restart(),            successMessage: SERVER_STRINGS.MSG_ACTION_RESTART },
+  [ServerAction.Kill]:    { handler: (uc) => uc.kill(),               successMessage: SERVER_STRINGS.MSG_ACTION_KILL },
+  [ServerAction.Update]:  { handler: (uc, b) => uc.update(b.branch),  successMessage: SERVER_STRINGS.MSG_ACTION_UPDATE },
+  [ServerAction.Command]: { handler: (uc, b) => uc.sendCommand(b.command), successMessage: SERVER_STRINGS.MSG_ACTION_COMMAND }
 };
 
 /** Maps ConfigFileType to the parser strategy that handles it. */

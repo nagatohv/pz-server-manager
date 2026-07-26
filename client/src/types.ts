@@ -6,7 +6,10 @@
 export enum ServerStatus {
   Stopped = 'STOPPED',
   Starting = 'STARTING',
-  Running = 'RUNNING'
+  Running = 'RUNNING',
+  Stopping = 'STOPPING',
+  Updating = 'UPDATING',
+  Crashed = 'CRASHED'
 }
 
 /** Tipo de archivo de configuración editable */

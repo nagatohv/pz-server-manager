@@ -23,12 +23,18 @@ if [ "$CURRENT_BRANCH" != "$STEAMAPPBRANCH" ]; then
         mv "/home/steam/data/pzserver" "$BACKUP_DIR"
     fi
     mkdir -p /home/steam/data/pzserver
+    # Limpiar base de datos SQLite anterior si existía para evitar incompatibilidades de esquema entre Build 41 y Build 42
+    if [ -d "/home/steam/data/Zomboid/db" ]; then
+        echo "[Installer] Limpiando esquema de base de datos antiguo de Zomboid/db..."
+        rm -rf /home/steam/data/Zomboid/db/*
+    fi
 fi
 
 # Instalar o actualizar si start-server.sh no existe
 if [ ! -f "/home/steam/data/pzserver/start-server.sh" ]; then
     echo "[Installer] Instalando o actualizando Project Zomboid (rama: '$STEAMAPPBRANCH')..."
     
+    APP_ID="${STEAM_APP_ID:-380870}"
     STEAM_CMD_ARGS=(
         +force_install_dir /home/steam/data/pzserver
         +login anonymous
@@ -36,7 +42,7 @@ if [ ! -f "/home/steam/data/pzserver/start-server.sh" ]; then
     if [ -n "$STEAMAPPBRANCH" ]; then
         STEAM_CMD_ARGS+=(-beta "$STEAMAPPBRANCH")
     fi
-    STEAM_CMD_ARGS+=(+app_update 380870 validate +quit)
+    STEAM_CMD_ARGS+=(+app_update "$APP_ID" validate +quit)
 
     set +e
     /home/steam/steamcmd/steamcmd.sh "${STEAM_CMD_ARGS[@]}"

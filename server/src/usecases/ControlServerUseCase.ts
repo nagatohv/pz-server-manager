@@ -34,6 +34,13 @@ export default class ControlServerUseCase {
   }
 
   /**
+   * Safe server restart.
+   */
+  restart(): ControlResult {
+    return this.serverControlService.restartServer();
+  }
+
+  /**
    * Force server termination.
    */
   kill(): ControlResult {

@@ -14,7 +14,10 @@ interface HeaderProps {
 const STATUS_LABEL_MAP: Record<ServerStatus, string> = {
   [ServerStatus.Running]: CLIENT_STRINGS.STATUS_WIDGETS.STATUS_ONLINE,
   [ServerStatus.Stopped]: CLIENT_STRINGS.STATUS_WIDGETS.STATUS_OFFLINE,
-  [ServerStatus.Starting]: CLIENT_STRINGS.STATUS_WIDGETS.STATUS_STARTING
+  [ServerStatus.Starting]: CLIENT_STRINGS.STATUS_WIDGETS.STATUS_STARTING,
+  [ServerStatus.Stopping]: CLIENT_STRINGS.STATUS_WIDGETS.STATUS_STOPPING,
+  [ServerStatus.Updating]: CLIENT_STRINGS.STATUS_WIDGETS.STATUS_UPDATING,
+  [ServerStatus.Crashed]: CLIENT_STRINGS.STATUS_WIDGETS.STATUS_CRASHED
 };
 
 const formatIdleTime = (seconds: number): string => {

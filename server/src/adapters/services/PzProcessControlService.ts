@@ -513,6 +513,22 @@ class PzProcessControlService implements IServerControlService {
     return { success: true };
   }
 
+  restartServer(): ControlResult {
+    const stopRes = this.stopServer();
+    if (stopRes.error) {
+      return stopRes;
+    }
+
+    const checkInterval = setInterval(() => {
+      if (this.pzStatus === ServerStatus.Stopped) {
+        clearInterval(checkInterval);
+        this.startServer();
+      }
+    }, 1000);
+
+    return { success: true };
+  }
+
   killServer(): ControlResult {
     const javaPid = this.findZomboidPid();
     if (!this.pzProcess && !javaPid) {

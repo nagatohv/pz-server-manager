@@ -52,6 +52,12 @@ export const SERVER_STRINGS = {
   MSG_PORTAL_RUNNING: '[PZ Web Portal] Corriendo bajo Clean Architecture en http://{host}:{port}',
 
   // Express route messages
+  MSG_ACTION_START: 'Servidor iniciándose...',
+  MSG_ACTION_STOP: 'Deteniendo servidor de forma segura...',
+  MSG_ACTION_RESTART: 'Reiniciando el servidor de forma segura...',
+  MSG_ACTION_KILL: 'Servidor detenido forzosamente.',
+  MSG_ACTION_UPDATE: 'Iniciando actualización del servidor...',
+  MSG_ACTION_COMMAND: 'Comando enviado con éxito.',
   ERR_CONTENT_NOT_PROVIDED: 'Contenido no provisto',
   ERR_DATA_NOT_PROVIDED: 'Datos no provistos',
   ERR_UNSUPPORTED_GUI_TYPE: 'Tipo de archivo no soportado para análisis GUI',

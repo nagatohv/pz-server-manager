@@ -13,6 +13,7 @@ export default interface IServerControlService {
   getStatus(): ServerStatusPayload;
   startServer(): ControlResult;
   stopServer(): ControlResult;
+  restartServer(): ControlResult;
   killServer(): ControlResult;
   updateGame(branch: string): ControlResult;
   sendCommand(cmd: string): ControlResult;
