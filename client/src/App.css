@@ -840,11 +840,13 @@ body {
 
 /* --- PANTALLA DE LOGIN --- */
 
+.login-container,
 .login-wrapper {
   display: flex;
   justify-content: center;
   align-items: center;
   min-height: 100vh;
+  width: 100%;
   padding: 1rem;
 }
 
@@ -863,13 +865,16 @@ body {
   animation: fade-in-up 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+.login-header,
 .login-logo-container {
   display: flex;
   flex-direction: column;
   align-items: center;
+  text-align: center;
   gap: 0.5rem;
 }
 
+.login-header .biohazard-logo,
 .login-logo-container .biohazard-logo {
   width: 60px;
   height: 60px;

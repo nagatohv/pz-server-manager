@@ -54,15 +54,14 @@ if [ ! -f "/home/steam/data/pzserver/start-server.sh" ]; then
             rm -rf "$BACKUP_DIR"
         fi
     else
-        echo "[Installer] ERROR: La descarga o validación falló (Código: $STEAMCMD_EXIT_CODE)."
+        echo "[Installer] ADVERTENCIA: La descarga inicial de SteamCMD no pudo completarse en este intento (Código: $STEAMCMD_EXIT_CODE)."
         if [ -d "$BACKUP_DIR" ]; then
             echo "[Installer] Restaurando versión anterior desde el backup..."
             rm -rf /home/steam/data/pzserver
             mv "$BACKUP_DIR" /home/steam/data/pzserver
             echo "[Installer] Versión anterior restaurada con éxito."
         else
-            echo "[Installer] No hay versión anterior para restaurar."
-            exit 1
+            echo "[Installer] El portal web iniciará. Podrás presionar 'Actualizar Juego (SteamCMD)' desde el panel web para instalarlo."
         fi
     fi
 else

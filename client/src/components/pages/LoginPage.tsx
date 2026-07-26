@@ -6,5 +6,9 @@ interface LoginPageProps {
 }
 
 export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
-  return <LoginForm onLogin={onLogin} />;
+  return (
+    <div className="login-wrapper">
+      <LoginForm onLogin={onLogin} />
+    </div>
+  );
 };
