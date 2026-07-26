@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   pz-portal:
     build:
@@ -7,7 +5,12 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     ports:
-      - "${PORT:-3001}:${PORT:-3001}"
+      # Exposición del puerto Web HTTP adaptada para Dokploy:
+      # En producción con Dokploy, Traefik o Nginx Proxy Manager se comunican mediante la red Docker
+      # usando el puerto interno (EXPOSE 3000/3001 del contenedor), sin necesidad de publicar el puerto en el Host.
+      # Si deseas publicar el puerto directamente al Host (para desarrollo local), define en el .env:
+      # WEB_PORT_HOST=3001
+      - "${WEB_PORT_HOST:+$WEB_PORT_HOST:}${PORT:-3001}"
       # --- PUERTOS DE CONEXIÓN DE JUEGO (UDP) ---
       # Project Zomboid requiere abrir estos puertos UDP directamente en el host
       - "16261:16261/udp" # Puerto principal del servidor de juego

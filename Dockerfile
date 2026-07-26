@@ -22,17 +22,20 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
 # Crear estructura de carpetas
 WORKDIR /app
 
-# Copiar archivos del cliente y compilar
+# Copiar y compilar el cliente (React/Vite)
 COPY client/package*.json ./client/
 RUN cd client && npm install
-
 COPY client/ ./client/
 RUN cd client && npm run build
 
-# Copiar archivos del servidor e instalar dependencias
+# Copiar y compilar el servidor (Node/Express/TS)
 COPY server/package*.json ./server/
-RUN cd server && npm install --only=production
+RUN cd server && npm install
 COPY server/ ./server/
+RUN cd server && npm run build
+
+# Re-instalar dependencias de producción para el servidor
+RUN cd server && rm -rf node_modules && npm install --only=production
 
 
 # --- ETAPA DE PRODUCCIÓN ---
@@ -72,12 +75,15 @@ RUN mkdir -p /home/steam/steamcmd && \
     curl -sqL "https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz" | tar zxvf -
 
 # Copiar la aplicación compilada del constructor
-COPY --from=builder --chown=steam:steam /app/server /home/steam/app/server
+COPY --from=builder --chown=steam:steam /app/server/dist /home/steam/app/server/dist
+COPY --from=builder --chown=steam:steam /app/server/package.json /home/steam/app/server/package.json
+COPY --from=builder --chown=steam:steam /app/server/node_modules /home/steam/app/server/node_modules
 COPY --from=builder --chown=steam:steam /app/client/dist /home/steam/app/client/dist
 
-# Copiar el script de entrada (entrypoint.sh)
+# Copiar los scripts de entrada y utilidades (entrypoint.sh)
 COPY --chown=steam:steam entrypoint.sh /home/steam/entrypoint.sh
-RUN chmod +x /home/steam/entrypoint.sh
+COPY --chown=steam:steam scripts/install-zomboid.sh /home/steam/install-zomboid.sh
+RUN chmod +x /home/steam/entrypoint.sh /home/steam/install-zomboid.sh
 
 # Crear la carpeta de datos persistente (donde se montará el volumen de Dokploy)
 RUN mkdir -p /home/steam/data
