@@ -32,12 +32,11 @@ if [ ! -f "/home/steam/data/pzserver/start-server.sh" ]; then
     STEAM_CMD_ARGS=(
         +force_install_dir /home/steam/data/pzserver
         +login anonymous
-        +app_update 380870
     )
     if [ -n "$STEAMAPPBRANCH" ]; then
         STEAM_CMD_ARGS+=(-beta "$STEAMAPPBRANCH")
     fi
-    STEAM_CMD_ARGS+=(validate +quit)
+    STEAM_CMD_ARGS+=(+app_update 380870 validate +quit)
 
     set +e
     /home/steam/steamcmd/steamcmd.sh "${STEAM_CMD_ARGS[@]}"

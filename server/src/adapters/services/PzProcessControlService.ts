@@ -595,14 +595,13 @@ class PzProcessControlService implements IServerControlService {
     const steamArgs = [
       steamCmdPath,
       '+force_install_dir', this.systemConfig.PZ_SERVER_DIR,
-      '+login', 'anonymous',
-      '+app_update', SERVER_CONSTANTS.STEAM_APP_ID
+      '+login', 'anonymous'
     ];
 
     if (branch) {
       steamArgs.push('-beta', branch);
     }
-    steamArgs.push('validate', '+quit');
+    steamArgs.push('+app_update', SERVER_CONSTANTS.STEAM_APP_ID, 'validate', '+quit');
 
     this.steamCmdProcess = spawn('bash', steamArgs);
 
