@@ -14,8 +14,8 @@ RUN dpkg --add-architecture i386 && \
     gnupg \
     && rm -rf /var/lib/apt/lists/*
 
-# Instalar Node.js 20 LTS
-RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+# Instalar Node.js 24 LTS
+RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && \
     apt-get install -y nodejs && \
     rm -rf /var/lib/apt/lists/*
 
@@ -58,8 +58,8 @@ RUN dpkg --add-architecture i386 && \
     bash \
     && rm -rf /var/lib/apt/lists/*
 
-# Instalar Node.js runtime en la imagen de producción
-RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+# Instalar Node.js runtime 24 en la imagen de producción
+RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && \
     apt-get install -y nodejs && \
     rm -rf /var/lib/apt/lists/*
 
