@@ -17,6 +17,18 @@ services:
       - "16262:16262/udp" # Puerto de conexión directa de los clientes
       - "8766:8766/udp" # Puerto Steam Query
 
+    # --- ETIQUETAS PARA TRAEFIK (DOKPLOY) ---
+    # Dokploy inyecta su propio dominio y certificador Let's Encrypt mediante Traefik.
+    # Si despliegas mediante Dokploy UI las etiquetas se autogeneran, pero incluir estas
+    # permite que Traefik identifique correctamente el enrutamiento HTTP y el puerto del servicio.
+    labels:
+      - "traefik.enable=${TRAEFIK_ENABLE:-true}"
+      - "traefik.http.routers.pz-portal.rule=Host(`${DOMAIN:-localhost}`)"
+      - "traefik.http.routers.pz-portal.entrypoints=${TRAEFIK_ENTRYPOINTS:-web,websecure}"
+      - "traefik.http.routers.pz-portal.tls=${TRAEFIK_TLS:-true}"
+      - "traefik.http.routers.pz-portal.tls.certresolver=${TRAEFIK_CERTRESOLVER:-letsencrypt}"
+      - "traefik.http.services.pz-portal.loadbalancer.server.port=${PORT:-3001}"
+
     environment:
       - PORT=${PORT:-3001}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD}
