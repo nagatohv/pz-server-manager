@@ -29,20 +29,18 @@ fi
 if [ ! -f "/home/steam/data/pzserver/start-server.sh" ]; then
     echo "[Installer] Instalando o actualizando Project Zomboid (rama: '$STEAMAPPBRANCH')..."
     
-    BETA_ARGS=""
+    STEAM_CMD_ARGS=(
+        +force_install_dir /home/steam/data/pzserver
+        +login anonymous
+        +app_update 380870
+    )
     if [ -n "$STEAMAPPBRANCH" ]; then
-        echo "[Installer] Usando rama de Steam: $STEAMAPPBRANCH"
-        BETA_ARGS="-beta $STEAMAPPBRANCH"
-    else
-        echo "[Installer] Usando rama de Steam por defecto (estable)"
+        STEAM_CMD_ARGS+=(-beta "$STEAMAPPBRANCH")
     fi
-    
+    STEAM_CMD_ARGS+=(validate +quit)
+
     set +e
-    /home/steam/steamcmd/steamcmd.sh \
-        +force_install_dir /home/steam/data/pzserver \
-        +login anonymous \
-        +app_update 380870 $BETA_ARGS validate \
-        +quit
+    /home/steam/steamcmd/steamcmd.sh "${STEAM_CMD_ARGS[@]}"
     STEAMCMD_EXIT_CODE=$?
     set -e
 

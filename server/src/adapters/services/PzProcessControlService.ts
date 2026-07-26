@@ -592,15 +592,19 @@ class PzProcessControlService implements IServerControlService {
 
     this.appendLog(SERVER_STRINGS.MSG_STEAMCMD_DOWNLOADING.replace('{branch}', branch ? `(rama: ${branch})` : '(rama: estable)'));
 
-    this.steamCmdProcess = spawn('bash', [
+    const steamArgs = [
       steamCmdPath,
       '+force_install_dir', this.systemConfig.PZ_SERVER_DIR,
       '+login', 'anonymous',
-      '+app_update', SERVER_CONSTANTS.STEAM_APP_ID,
-      ...(branch ? ['-beta', branch] : []),
-      'validate',
-      '+quit'
-    ]);
+      '+app_update', SERVER_CONSTANTS.STEAM_APP_ID
+    ];
+
+    if (branch) {
+      steamArgs.push('-beta', branch);
+    }
+    steamArgs.push('validate', '+quit');
+
+    this.steamCmdProcess = spawn('bash', steamArgs);
 
     if (this.steamCmdProcess.stdout) {
       this.steamCmdProcess.stdout.on('data', (data: Buffer) => {
