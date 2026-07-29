@@ -620,6 +620,7 @@ class PzProcessControlService implements IServerControlService {
     const steamArgs = [
       steamCmdPath,
       '+force_install_dir', this.systemConfig.PZ_SERVER_DIR,
+      '+@sSteamCmdForcePlatformType linux',
       '+login', 'anonymous'
     ];
 

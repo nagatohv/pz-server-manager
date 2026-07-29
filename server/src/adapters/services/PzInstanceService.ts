@@ -286,6 +286,17 @@ export class PzInstanceService implements IPzInstanceService {
       throw new Error(SERVER_STRINGS.ERR_STEAMCMD_NOT_FOUND.replace('{path}', steamCmdPath));
     }
 
+    // Diagnóstico de espacio en disco y permisos para entornos de producción (Dokploy)
+    try {
+      const { execSync } = await import('child_process');
+      const dfOutput = execSync('df -h ' + JSON.stringify(instance.installPath), { encoding: 'utf8' });
+      this.log(`[Diagnostic] Espacio en disco para el directorio de instalación:\n${dfOutput}`);
+      const lsOutput = execSync('ls -la ' + JSON.stringify(instance.installPath), { encoding: 'utf8' });
+      this.log(`[Diagnostic] Permisos del directorio de instalación:\n${lsOutput}`);
+    } catch (diagErr: any) {
+      this.log(`[Diagnostic Warning] No se pudo obtener diagnóstico detallado: ${diagErr.message}`);
+    }
+
     // Fast Reuse Check: If start-server.sh is not yet present, check if another instance with the same branch is already installed.
     const startScriptPath = path.join(instance.installPath, SERVER_CONSTANTS.PATH_START_SCRIPT);
     if (!fs.existsSync(startScriptPath)) {
@@ -314,6 +325,7 @@ export class PzInstanceService implements IPzInstanceService {
     const args = [
       steamCmdPath,
       '+force_install_dir', instance.installPath,
+      '+@sSteamCmdForcePlatformType linux',
       '+login', 'anonymous'
     ];
     if (instance.branch && instance.branch !== 'public') {
@@ -375,6 +387,20 @@ export class PzInstanceService implements IPzInstanceService {
         const installDir = args[args.indexOf('+force_install_dir') + 1];
         const startScriptPath = path.join(installDir, SERVER_CONSTANTS.PATH_START_SCRIPT);
         const success = code === 0 && fs.existsSync(startScriptPath);
+
+        if (!success) {
+          try {
+            const contentLogPath = path.join(this.steamCmdDir, 'logs', 'content_log.txt');
+            if (fs.existsSync(contentLogPath)) {
+              const logLines = fs.readFileSync(contentLogPath, 'utf8').split('\n');
+              const lastLines = logLines.slice(-30).join('\n');
+              this.log(`[Diagnostic] Últimas líneas de content_log.txt:\n${lastLines}`);
+            }
+          } catch (logErr: any) {
+            this.log(`[Diagnostic Warning] No se pudo leer content_log.txt: ${logErr.message}`);
+          }
+        }
+
         resolve({ success, errorMessage: success ? null : (stderr.trim() || `código de salida ${code}`) });
       });
       child.on('error', () => {
