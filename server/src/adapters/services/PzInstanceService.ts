@@ -341,7 +341,12 @@ export class PzInstanceService implements IPzInstanceService {
 
   private runSteamCmd(id: string, args: readonly string[]): Promise<{ success: boolean; errorMessage: string | null }> {
     return new Promise((resolve) => {
-      const child = this.spawnFn(args[0], args.slice(1));
+      // En entornos Linux / Docker (Dokploy), ejecutar bash <script> evita fallos si no tiene chmod +x o hashbang directo.
+      const isLinuxScript = args[0].endsWith('.sh');
+      const command = isLinuxScript ? 'bash' : args[0];
+      const cmdArgs = isLinuxScript ? args : args.slice(1);
+
+      const child = this.spawnFn(command, cmdArgs);
       this.activeInstallProcesses.set(id, child);
 
       let stdoutTail = '';
