@@ -186,6 +186,9 @@ export function useConfigManager(token: string | null, onSessionExpired: () => v
       await ApiService.saveRawConfig(token, editorType, rawConfigText, instanceId);
     } else {
       await ApiService.saveParsedConfig(token, editorType, parsedConfigData, instanceId);
+      if (editorType === EditorType.Ini) {
+        await ApiService.savePanelConfig(token, panelConfig, instanceId);
+      }
     }
 
     showSuccess(
@@ -194,7 +197,7 @@ export function useConfigManager(token: string | null, onSessionExpired: () => v
         editorType.toUpperCase()
       )
     );
-  }, [token, editorMode, editorType, rawConfigText, parsedConfigData, targetInstanceId, showSuccess]);
+  }, [token, editorMode, editorType, rawConfigText, parsedConfigData, panelConfig, targetInstanceId, showSuccess]);
 
   return {
     iniSettings,
