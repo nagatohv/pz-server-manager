@@ -68,7 +68,9 @@ export const ServerConfigWorkspace: React.FC<ServerConfigWorkspaceProps> = ({
   onUpdateSandboxValue,
   onToggleSpawnRegion,
   onRemoveSpawnRegion,
-  onSaveEditor
+  onSaveEditor,
+  onIniSettingChange,
+  iniSettings
 }) => {
   const {
     backups,
@@ -126,6 +128,7 @@ export const ServerConfigWorkspace: React.FC<ServerConfigWorkspaceProps> = ({
             rawConfigText={rawConfigText}
             panelConfig={panelConfig}
             onPanelConfigChange={onPanelConfigChange}
+            onIniSettingChange={onIniSettingChange}
             onTypeChange={onEditorTypeChange}
             onModeChange={onEditorModeChange}
             onRawTextChange={onRawTextChange}

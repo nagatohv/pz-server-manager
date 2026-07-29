@@ -13,6 +13,7 @@ interface EditorPanelProps {
   rawConfigText: string;
   panelConfig?: PanelConfig;
   onPanelConfigChange?: (field: keyof PanelConfig, val: unknown) => void;
+  onIniSettingChange?: (key: string, val: string) => void;
   onTypeChange: (type: EditorType) => void;
   onModeChange: (mode: EditorMode) => void;
   onRawTextChange: (text: string) => void;
@@ -71,6 +72,7 @@ const renderPanelConfigSection = (
 
 const renderIniEditor = (
   data: unknown,
+  onIniSettingChange?: (key: string, val: string) => void,
   panelConfig?: PanelConfig,
   onPanelConfigChange?: (field: keyof PanelConfig, val: unknown) => void
 ): React.ReactNode => {
@@ -88,7 +90,11 @@ const renderIniEditor = (
               key={item.key}
               itemKey={item.key}
               value={item.value}
-              onChange={(newVal) => { item.value = String(newVal); }}
+              onChange={(newVal) => {
+                if (onIniSettingChange) {
+                  onIniSettingChange(item.key, String(newVal));
+                }
+              }}
               description={translateDescription(item.key, item.description)}
             />
           ))}
@@ -185,6 +191,7 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
   rawConfigText,
   panelConfig,
   onPanelConfigChange,
+  onIniSettingChange,
   onTypeChange,
   onModeChange,
   onRawTextChange,
@@ -198,7 +205,7 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
     if (!parsedConfigData) {
       return <p className="empty-text">{CLIENT_STRINGS.EDITOR_PANEL.LOADING_TEXT}</p>;
     }
-    if (editorType === EditorType.Ini) return renderIniEditor(parsedConfigData, panelConfig, onPanelConfigChange);
+    if (editorType === EditorType.Ini) return renderIniEditor(parsedConfigData, onIniSettingChange, panelConfig, onPanelConfigChange);
     if (editorType === EditorType.Sandbox) return renderSandboxEditor(parsedConfigData, onUpdateSandboxValue);
     if (editorType === EditorType.Spawn) return renderSpawnEditor(parsedConfigData, onToggleSpawnRegion, onRemoveSpawnRegion);
     return null;

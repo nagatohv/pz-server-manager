@@ -95,6 +95,12 @@ export function useConfigManager(token: string | null, onSessionExpired: () => v
     setIniSettings((prev) =>
       prev.map((item) => (item.key === key ? { ...item, value: val } : item))
     );
+    setParsedConfigData((prev: unknown) => {
+      if (!Array.isArray(prev)) return prev;
+      return (prev as any[]).map((item) =>
+        item.key === key ? { ...item, value: val } : item
+      );
+    });
   }, []);
 
   const updatePanelConfigField = useCallback(<K extends keyof PanelConfig>(field: K, val: PanelConfig[K]) => {
