@@ -11,6 +11,12 @@ export const API_STATUS = '/api/status';
 /** Endpoint de control del servidor */
 export const API_CONTROL = '/api/control';
 
+/** Endpoint de catálogo dinámico de ramas de Steam */
+export const API_BRANCHES = '/api/branches';
+
+/** Endpoint de gestión de instancias de servidor PZ */
+export const API_INSTANCES = '/api/instances';
+
 /** Endpoint de configuración INI */
 export const API_CONFIG_SETTINGS = '/api/config/settings';
 
@@ -103,6 +109,7 @@ export const CLIENT_CONSTANTS = {
   API_AUTH_LOGIN,
   API_STATUS,
   API_CONTROL,
+  API_BRANCHES,
   API_CONFIG_SETTINGS,
   API_CONFIG_PANEL,
   API_CONFIG_PARSED,

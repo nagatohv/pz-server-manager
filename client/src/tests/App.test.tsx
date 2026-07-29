@@ -8,11 +8,22 @@ describe('App React Component', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn().mockImplementation((url) => {
-        if (url.includes('/api/auth/login')) {
+        if (typeof url === 'string' && url.includes('/api/auth/login')) {
           return Promise.resolve({
             ok: true,
             status: 200,
             json: async () => ({ token: 'mock-valid-token' })
+          });
+        }
+        if (typeof url === 'string' && url.includes('/api/branches')) {
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            json: async () => ({
+              branches: [
+                { name: '', buildId: '12345', timeUpdated: '', description: '', isDefault: true, isUnstable: false }
+              ]
+            })
           });
         }
         return Promise.resolve({
@@ -22,7 +33,8 @@ describe('App React Component', () => {
             status: 'STOPPED',
             onlinePlayers: 0,
             stats: { cpu: 0, memory: 0, memoryTotal: 4096 },
-            idleShutdown: { minutes: 0, active: false, remainingSeconds: 0 }
+            idleShutdown: { minutes: 0, active: false, remainingSeconds: 0 },
+            config: { serverName: 'servertest', jvmMin: 4, jvmMax: 8, installedBranch: '' }
           }),
           text: async () => 'MaxPlayers=16'
         });
@@ -58,6 +70,14 @@ describe('App React Component', () => {
   it('should render PortalPage when authenticated token is present and allow logout', async () => {
     localStorage.setItem('pz_token', 'mock-valid-token');
     render(<App />);
+
+    // Allow the async fetches inside useServerStatus and useConfigManager to settle.
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
 
     expect(screen.getByText(/Consola y Control/i)).toBeDefined();
 

@@ -13,6 +13,7 @@ export default defineConfig({
         'src/adapters/parsers/**/*.ts',
         'src/adapters/security/**/*.ts',
         'src/adapters/repositories/**/*.ts',
+        'src/adapters/services/SteamBranchCatalogService.ts',
         'src/config/**/*.ts'
       ],
       exclude: [

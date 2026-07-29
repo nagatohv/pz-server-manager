@@ -14,6 +14,7 @@ describe('ControlServerUseCase', () => {
     }),
     startServer: vi.fn().mockReturnValue({ success: true }),
     stopServer: vi.fn().mockReturnValue({ success: true }),
+    restartServer: vi.fn().mockReturnValue({ success: true }),
     killServer: vi.fn().mockReturnValue({ success: true }),
     updateGame: vi.fn().mockReturnValue({ success: true }),
     sendCommand: vi.fn().mockReturnValue({ success: true }),

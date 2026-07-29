@@ -5,6 +5,8 @@ import { fileURLToPath } from 'url';
 import AuthenticateUseCase from '../../usecases/AuthenticateUseCase.js';
 import ControlServerUseCase from '../../usecases/ControlServerUseCase.js';
 import ManageConfigUseCase from '../../usecases/ManageConfigUseCase.js';
+import ListBranchesUseCase from '../../usecases/ListBranchesUseCase.js';
+import { PzInstanceService } from '../../adapters/services/PzInstanceService.js';
 import IniParserStrategy from '../../adapters/parsers/IniParserStrategy.js';
 import SandboxParserStrategy from '../../adapters/parsers/SandboxParserStrategy.js';
 import SpawnParserStrategy from '../../adapters/parsers/SpawnParserStrategy.js';
@@ -40,6 +42,9 @@ const ACTION_HANDLERS: Record<ServerAction, {
 /** Maps ConfigFileType to the parser strategy that handles it. */
 type ParserMap = Record<string, IniParserStrategy | SandboxParserStrategy | SpawnParserStrategy>;
 
+import IPzBackupService from '../../domain/ports/IPzBackupService.js';
+import { PzBackupService } from '../../adapters/services/PzBackupService.js';
+
 /**
  * Factory function to build the Express Application with dependencies injected.
  */
@@ -47,11 +52,18 @@ export default function createExpressApp(
   authenticateUseCase: AuthenticateUseCase,
   controlServerUseCase: ControlServerUseCase,
   manageConfigUseCase: ManageConfigUseCase,
+  listBranchesUseCase: ListBranchesUseCase,
+  instanceService: PzInstanceService,
   iniStrategy: IniParserStrategy,
   sandboxStrategy: SandboxParserStrategy,
-  spawnStrategy: SpawnParserStrategy
+  spawnStrategy: SpawnParserStrategy,
+  backupServiceInput?: IPzBackupService
 ) {
   const app = express();
+  const backupService = backupServiceInput ?? new PzBackupService({
+    dataDir: (instanceService as any).dataDir,
+    repository: (instanceService as any).repository
+  });
 
   app.use(cors());
   app.use(express.json());
@@ -120,6 +132,258 @@ export default function createExpressApp(
       const result = entry.handler(controlServerUseCase, req.body);
       if (result.error) return res.status(SERVER_CONSTANTS.HTTP_STATUS.BAD_REQUEST).json(result);
       return res.json({ message: entry.successMessage });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      return res.status(SERVER_CONSTANTS.HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ error: message });
+    }
+  });
+
+  // List available Steam branches (dynamic, non-blocking catalog)
+  app.get(SERVER_CONSTANTS.ROUTES.BRANCHES, authenticate, async (_req: Request, res: Response) => {
+    try {
+      await listBranchesUseCase.refresh();
+      const snapshot = listBranchesUseCase.getSnapshot();
+      return res.json(snapshot);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      return res.status(SERVER_CONSTANTS.HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ error: message });
+    }
+  });
+
+  // List all PZ server instances + active id
+  app.get(SERVER_CONSTANTS.ROUTES.INSTANCES, authenticate, async (_req: Request, res: Response) => {
+    try {
+      const registry = await instanceService.listInstances();
+      return res.json(registry);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      return res.status(SERVER_CONSTANTS.HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ error: message });
+    }
+  });
+
+  // Create a new PZ server instance
+  app.post(SERVER_CONSTANTS.ROUTES.INSTANCES, authenticate, async (req: Request, res: Response) => {
+    try {
+      const body = (req.body ?? {}) as Record<string, unknown>;
+      const result = await instanceService.createInstance({
+        name: String(body.name ?? '').trim(),
+        branch: String(body.branch ?? ''),
+        gamePort: Number(body.gamePort),
+        rconPort: Number(body.rconPort),
+        maxPlayers: Number(body.maxPlayers)
+      });
+      return res.json(result);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      return res.status(SERVER_CONSTANTS.HTTP_STATUS.BAD_REQUEST).json({ error: message });
+    }
+  });
+
+  // Mark an instance as the active one
+  app.post(SERVER_CONSTANTS.ROUTES.INSTANCE_SELECT, authenticate, async (req: Request, res: Response) => {
+    try {
+      const instance = await instanceService.selectInstance(req.params.id);
+      return res.json({ instance });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      return res.status(SERVER_CONSTANTS.HTTP_STATUS.BAD_REQUEST).json({ error: message });
+    }
+  });
+
+  // Trigger SteamCMD install/update for an instance
+  app.post(SERVER_CONSTANTS.ROUTES.INSTANCE_INSTALL, authenticate, async (req: Request, res: Response) => {
+    try {
+      const result = await instanceService.installInstance(req.params.id);
+      return res.json(result);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      return res.status(SERVER_CONSTANTS.HTTP_STATUS.BAD_REQUEST).json({ error: message });
+    }
+  });
+
+  // Delete an instance (and its directory)
+  app.delete(SERVER_CONSTANTS.ROUTES.INSTANCE_BY_ID, authenticate, async (req: Request, res: Response) => {
+    try {
+      await instanceService.deleteInstance(req.params.id);
+      return res.json({ success: true });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      return res.status(SERVER_CONSTANTS.HTTP_STATUS.BAD_REQUEST).json({ error: message });
+    }
+  });
+
+  // Migrate Zomboid/ from one instance to another
+  app.post(SERVER_CONSTANTS.ROUTES.INSTANCE_MIGRATE, authenticate, async (req: Request, res: Response) => {
+    try {
+      const body = (req.body ?? {}) as Record<string, unknown>;
+      const result = await instanceService.migrateUserData(
+        String(body.sourceId ?? ''),
+        String(body.targetId ?? req.params.id)
+      );
+      return res.json(result);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      return res.status(SERVER_CONSTANTS.HTTP_STATUS.BAD_REQUEST).json({ error: message });
+    }
+  });
+
+  // Backup management routes for a specific instance
+  app.get('/api/instances/:id/backups', authenticate, async (req: Request, res: Response) => {
+    try {
+      const backups = await backupService.listBackups(req.params.id);
+      return res.json(backups);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      return res.status(SERVER_CONSTANTS.HTTP_STATUS.BAD_REQUEST).json({ error: message });
+    }
+  });
+
+  app.post('/api/instances/:id/backups', authenticate, async (req: Request, res: Response) => {
+    try {
+      const body = (req.body ?? {}) as { note?: string };
+      const backup = await backupService.createBackup(req.params.id, body.note);
+      return res.json(backup);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      return res.status(SERVER_CONSTANTS.HTTP_STATUS.BAD_REQUEST).json({ error: message });
+    }
+  });
+
+  app.post('/api/instances/:id/backups/:backupId/restore', authenticate, async (req: Request, res: Response) => {
+    try {
+      const result = await backupService.restoreBackup(req.params.id, req.params.backupId);
+      return res.json(result);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      return res.status(SERVER_CONSTANTS.HTTP_STATUS.BAD_REQUEST).json({ error: message });
+    }
+  });
+
+  app.delete('/api/instances/:id/backups/:backupId', authenticate, async (req: Request, res: Response) => {
+    try {
+      await backupService.deleteBackup(req.params.id, req.params.backupId);
+      return res.json({ success: true });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      return res.status(SERVER_CONSTANTS.HTTP_STATUS.BAD_REQUEST).json({ error: message });
+    }
+  });
+
+  // Helper to resolve custom data path for a specific instance
+  const resolveInstanceDataDir = async (instanceId: string): Promise<string | undefined> => {
+    if (!instanceId || instanceId === 'active') return undefined;
+    try {
+      const registry = await instanceService.listInstances();
+      const instance = registry.instances.find(i => i.id === instanceId);
+      return instance ? instance.dataPath : undefined;
+    } catch {
+      return undefined;
+    }
+  };
+
+  // Get key-value settings from server.ini (Instance-scoped)
+  app.get('/api/instances/:id/config/settings', authenticate, async (req: Request, res: Response) => {
+    try {
+      const dataDir = await resolveInstanceDataDir(req.params.id);
+      const parsedIni = manageConfigUseCase.getSettings(dataDir);
+      const settings: Record<string, string> = {};
+      parsedIni.forEach(item => {
+        settings[item.key] = item.value;
+      });
+      return res.json(settings);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      return res.status(SERVER_CONSTANTS.HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ error: message });
+    }
+  });
+
+  // Save server.ini settings (Instance-scoped)
+  app.post('/api/instances/:id/config/settings', authenticate, async (req: Request, res: Response) => {
+    try {
+      const dataDir = await resolveInstanceDataDir(req.params.id);
+      const result = manageConfigUseCase.saveSettings(req.body, dataDir);
+      return res.json(result);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      return res.status(SERVER_CONSTANTS.HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ error: message });
+    }
+  });
+
+  // Get Raw File Contents (Instance-scoped)
+  app.get('/api/instances/:id/config/raw/:type', authenticate, async (req: Request, res: Response) => {
+    const { id, type } = req.params;
+    try {
+      const dataDir = await resolveInstanceDataDir(id);
+      const content = manageConfigUseCase.getRawFile(type, dataDir);
+      return res.json({ content });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      return res.status(SERVER_CONSTANTS.HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ error: message });
+    }
+  });
+
+  // Save Raw File Contents (Instance-scoped)
+  app.post('/api/instances/:id/config/raw/:type', authenticate, async (req: Request, res: Response) => {
+    const { id, type } = req.params;
+    const { content } = req.body;
+    if (content === undefined) {
+      return res.status(SERVER_CONSTANTS.HTTP_STATUS.BAD_REQUEST).json({ error: SERVER_STRINGS.ERR_CONTENT_NOT_PROVIDED });
+    }
+    try {
+      const dataDir = await resolveInstanceDataDir(id);
+      const result = manageConfigUseCase.saveRawFile(type, content, dataDir);
+      return res.json(result);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      return res.status(SERVER_CONSTANTS.HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ error: message });
+    }
+  });
+
+  // Get Parsed GUI Config Data (Instance-scoped)
+  app.get('/api/instances/:id/config/parsed/:type', authenticate, async (req: Request, res: Response) => {
+    const { id, type } = req.params;
+    try {
+      const dataDir = await resolveInstanceDataDir(id);
+      const rawContent = manageConfigUseCase.getRawFile(type, dataDir);
+      if (!rawContent) {
+        return res.json({ data: null });
+      }
+
+      const parser = parsers[type];
+      if (!parser) {
+        return res.status(SERVER_CONSTANTS.HTTP_STATUS.BAD_REQUEST).json({ error: SERVER_STRINGS.ERR_UNSUPPORTED_GUI_TYPE });
+      }
+
+      return res.json({ data: parser.parse(rawContent) });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      return res.status(SERVER_CONSTANTS.HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ error: message });
+    }
+  });
+
+  // Save Parsed GUI Config Data (Instance-scoped)
+  app.post('/api/instances/:id/config/parsed/:type', authenticate, async (req: Request, res: Response) => {
+    const { id, type } = req.params;
+    const { data } = req.body;
+    if (data === undefined) {
+      return res.status(SERVER_CONSTANTS.HTTP_STATUS.BAD_REQUEST).json({ error: SERVER_STRINGS.ERR_DATA_NOT_PROVIDED });
+    }
+
+    try {
+      const dataDir = await resolveInstanceDataDir(id);
+      if (type === ConfigFileType.Ini) {
+        manageConfigUseCase.saveSettings(data, dataDir);
+        return res.json({ success: true });
+      }
+
+      const parser = parsers[type];
+      if (!parser) {
+        return res.status(SERVER_CONSTANTS.HTTP_STATUS.BAD_REQUEST).json({ error: SERVER_STRINGS.ERR_UNSUPPORTED_SERIALIZE_TYPE });
+      }
+
+      const rawContent = parser.serialize(data);
+      const result = manageConfigUseCase.saveRawFile(type, rawContent, dataDir);
+      return res.json(result);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       return res.status(SERVER_CONSTANTS.HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ error: message });

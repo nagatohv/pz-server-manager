@@ -1,8 +1,7 @@
 import React from 'react';
-import { ServerStatus } from '../../types.js';
 
 interface BadgeProps {
-  status: ServerStatus;
+  status: string;
   label: string;
 }
 

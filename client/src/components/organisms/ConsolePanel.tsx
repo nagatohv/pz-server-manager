@@ -1,32 +1,48 @@
 import React, { useState, useEffect, useRef, FormEvent } from 'react';
 import { ControlBar } from '../molecules/ControlBar.js';
 import { CLIENT_STRINGS } from '../../config/strings.js';
-import { ServerStatusPayload, ServerStatus } from '../../types.js';
+import { BranchInfo, BranchCatalogSource, BranchLoadState, ServerStatusPayload, ServerStatus, PzInstance } from '../../types.js';
 
 interface ConsolePanelProps {
   status: ServerStatusPayload;
   logs: string[];
   selectedBranch: string;
+  availableBranches: BranchInfo[];
+  branchesState: BranchLoadState;
+  branchesError: string | null;
+  branchesSource: BranchCatalogSource;
   onBranchChange: (branch: string) => void;
   onStart: () => void;
   onStop: () => void;
   onRestart: () => void;
   onKill: () => void;
   onUpdate: () => void;
+  onRefreshBranches: () => void;
   onSendCommand: (cmd: string) => void;
+  instances: PzInstance[];
+  activeInstanceId: string | null;
+  onSelectInstance: (id: string) => void;
 }
 
 export const ConsolePanel: React.FC<ConsolePanelProps> = ({
   status,
   logs,
   selectedBranch,
+  availableBranches,
+  branchesState,
+  branchesError,
+  branchesSource,
   onBranchChange,
   onStart,
   onStop,
   onRestart,
   onKill,
   onUpdate,
-  onSendCommand
+  onRefreshBranches,
+  onSendCommand,
+  instances,
+  activeInstanceId,
+  onSelectInstance
 }) => {
   const [commandInput, setCommandInput] = useState('');
   const logEndRef = useRef<HTMLDivElement>(null);
@@ -49,12 +65,20 @@ export const ConsolePanel: React.FC<ConsolePanelProps> = ({
       <ControlBar
         status={status.status}
         selectedBranch={selectedBranch}
+        availableBranches={availableBranches}
+        branchesState={branchesState}
+        branchesError={branchesError}
+        branchesSource={branchesSource}
         onBranchChange={onBranchChange}
         onStart={onStart}
         onStop={onStop}
         onRestart={onRestart}
         onKill={onKill}
         onUpdate={onUpdate}
+        onRefreshBranches={onRefreshBranches}
+        instances={instances}
+        activeInstanceId={activeInstanceId}
+        onSelectInstance={onSelectInstance}
       />
 
       <div className="terminal-window">

@@ -14,42 +14,54 @@ export default class ManageConfigUseCase {
   /**
    * Fetch all raw server.ini settings parsed as flat key-value pairs.
    */
-  getSettings(): IniSetting[] {
-    return this.configRepository.readIniSettings();
+  getSettings(overrideDataDir?: string): IniSetting[] {
+    return overrideDataDir !== undefined
+      ? this.configRepository.readIniSettings(overrideDataDir)
+      : this.configRepository.readIniSettings();
   }
 
   /**
    * Save parsed settings back to server.ini.
    */
-  saveSettings(settings: Record<string, string>): { success: boolean } {
-    return this.configRepository.saveIniSettings(settings);
+  saveSettings(settings: Record<string, string>, overrideDataDir?: string): { success: boolean } {
+    return overrideDataDir !== undefined
+      ? this.configRepository.saveIniSettings(settings, overrideDataDir)
+      : this.configRepository.saveIniSettings(settings);
   }
 
   /**
    * Read backend panel options.
    */
-  getPanelConfig(): PanelConfig {
-    return this.configRepository.readPanelConfig();
+  getPanelConfig(overrideDataDir?: string): PanelConfig {
+    return overrideDataDir !== undefined
+      ? this.configRepository.readPanelConfig(overrideDataDir)
+      : this.configRepository.readPanelConfig();
   }
 
   /**
    * Save backend panel options.
    */
-  savePanelConfig(config: PanelConfig): PanelConfig {
-    return this.configRepository.savePanelConfig(config);
+  savePanelConfig(config: PanelConfig, overrideDataDir?: string): PanelConfig {
+    return overrideDataDir !== undefined
+      ? this.configRepository.savePanelConfig(config, overrideDataDir)
+      : this.configRepository.savePanelConfig(config);
   }
 
   /**
    * Read raw file contents.
    */
-  getRawFile(type: string): string {
-    return this.configRepository.readRawFile(type);
+  getRawFile(type: string, overrideDataDir?: string): string {
+    return overrideDataDir !== undefined
+      ? this.configRepository.readRawFile(type, overrideDataDir)
+      : this.configRepository.readRawFile(type);
   }
 
   /**
    * Write raw file contents.
    */
-  saveRawFile(type: string, content: string): { success: boolean } {
-    return this.configRepository.saveRawFile(type, content);
+  saveRawFile(type: string, content: string, overrideDataDir?: string): { success: boolean } {
+    return overrideDataDir !== undefined
+      ? this.configRepository.saveRawFile(type, content, overrideDataDir)
+      : this.configRepository.saveRawFile(type, content);
   }
 }

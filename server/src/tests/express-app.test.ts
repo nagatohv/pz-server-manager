@@ -7,6 +7,7 @@ import { ServerStatus } from '../types.js';
 import type AuthenticateUseCase from '../usecases/AuthenticateUseCase.js';
 import type ControlServerUseCase from '../usecases/ControlServerUseCase.js';
 import type ManageConfigUseCase from '../usecases/ManageConfigUseCase.js';
+import type ListBranchesUseCase from '../usecases/ListBranchesUseCase.js';
 
 describe('express-app Framework Driver', () => {
   const createMockAuthUseCase = (): AuthenticateUseCase => ({
@@ -39,11 +40,37 @@ describe('express-app Framework Driver', () => {
     saveRawFile: vi.fn().mockReturnValue({ success: true })
   }) as unknown as ManageConfigUseCase;
 
+  const createMockListBranchesUseCase = (): ListBranchesUseCase => ({
+    getSnapshot: vi.fn().mockReturnValue({
+      branches: [
+        { name: 'public', buildId: '1', timeUpdated: '', description: '', isDefault: true, isUnstable: false },
+        { name: 'unstable', buildId: '2', timeUpdated: '', description: '', isDefault: false, isUnstable: true }
+      ],
+      isLoading: false,
+      error: null,
+      fetchedAt: 0,
+      source: 'steam'
+    }),
+    refresh: vi.fn(),
+    subscribe: vi.fn().mockReturnValue(() => {})
+  }) as unknown as ListBranchesUseCase;
+
   it('should create express app instance correctly', () => {
+    const instanceService = {
+      listInstances: vi.fn().mockResolvedValue({ instances: [], activeInstanceId: null, updatedAt: 0 }),
+      createInstance: vi.fn(),
+      selectInstance: vi.fn(),
+      installInstance: vi.fn(),
+      deleteInstance: vi.fn(),
+      migrateUserData: vi.fn()
+    } as any;
+
     const app = createExpressApp(
       createMockAuthUseCase(),
       createMockControlUseCase(),
       createMockManageUseCase(),
+      createMockListBranchesUseCase(),
+      instanceService,
       new IniParserStrategy(),
       new SandboxParserStrategy(),
       new SpawnParserStrategy()

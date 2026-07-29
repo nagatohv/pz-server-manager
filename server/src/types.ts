@@ -31,7 +31,8 @@ export enum WsMessageType {
   Log = 'log',
   LogsHistory = 'logs_history',
   StatusUpdate = 'status_update',
-  Command = 'command'
+  Command = 'command',
+  BranchesUpdate = 'branches_update'
 }
 
 // ─── Observer notification types ─────────────────────────────────────────────
@@ -142,4 +143,71 @@ export interface ISystemConfig {
   STEAM_APP_BRANCH: string;
   JVM_MIN_GB: number;
   JVM_MAX_GB: number;
+}
+
+/** Shape of a single Steam branch entry as discovered from the Steam catalog. */
+export interface BranchInfo {
+  /** Steam branch identifier (e.g. "public", "unstable", "b42stable"). Empty string means default public branch. */
+  name: string;
+  /** Build ID reported by Steam for that branch. */
+  buildId: string;
+  /** Unix timestamp (seconds) of the last update. May be empty if Steam omits it. */
+  timeUpdated: string;
+  /** Optional description provided by Steam. */
+  description: string;
+  /** True if the branch is the default public one (no -beta flag required). */
+  isDefault: boolean;
+  /** True if the branch name indicates an unstable/pre-release channel. */
+  isUnstable: boolean;
+}
+
+/** One PZ dedicated server installation managed by the portal. */
+export interface PzInstance {
+  /** Stable opaque identifier (uuid v4). */
+  id: string;
+  /** Operator-facing name (must be unique). */
+  name: string;
+  /** Steam branch currently installed ('' for default public, or e.g. 'b42stable', 'unstable'). */
+  branch: string;
+  /** Whether the Steam installation has been completed at least once. */
+  installed: boolean;
+  /** Current runtime status of the Java process. */
+  status: ServerStatus;
+  /** Absolute path to the Steam install dir (where SteamCMD writes the game files). */
+  installPath: string;
+  /** Absolute path to the user data dir (saves, mods, server.ini, etc.). */
+  dataPath: string;
+  /** UDP port the game listens on. */
+  gamePort: number;
+  /** TCP port for the RCON server. */
+  rconPort: number;
+  /** Max players allowed. */
+  maxPlayers: number;
+  /** Last error message produced while operating on the instance, if any. */
+  lastError: string | null;
+  /** Unix timestamp (ms) when the instance was created. */
+  createdAt: number;
+  /** Unix timestamp (ms) of the last write to this record. */
+  updatedAt: number;
+  /** Unix timestamp (ms) of the last successful SteamCMD install/update, or null. */
+  lastInstalledAt: number | null;
+}
+
+/** Persistent registry of all PzInstances known to the portal. */
+export interface PzInstanceRegistry {
+  instances: PzInstance[];
+  /** Id of the instance currently focused by the operator; null when none. */
+  activeInstanceId: string | null;
+  /** Unix timestamp (ms) of the last registry write. */
+  updatedAt: number;
+}
+
+/** Shape of a server backup record. */
+export interface PzBackup {
+  id: string;
+  instanceId: string;
+  name: string;
+  sizeBytes: number;
+  createdAt: number;
+  note: string | null;
 }

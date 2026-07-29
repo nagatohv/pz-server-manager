@@ -7,6 +7,7 @@ import { ConsolePanel } from '../components/organisms/ConsolePanel.js';
 import { SettingsPanel } from '../components/organisms/SettingsPanel.js';
 import { ModsPanel } from '../components/organisms/ModsPanel.js';
 import { EditorPanel } from '../components/organisms/EditorPanel.js';
+import { PortalPage } from '../components/pages/PortalPage.js';
 import { ServerStatus, EditorType, EditorMode } from '../types.js';
 
 const buildStatus = (status: ServerStatus) => ({
@@ -49,13 +50,23 @@ describe('Organisms Components Tests', () => {
         status={buildStatus(ServerStatus.Running)}
         logs={['Log line 1', 'Log line 2']}
         selectedBranch=""
+        availableBranches={[
+          { name: '', buildId: '1', timeUpdated: '', description: '', isDefault: true, isUnstable: false }
+        ]}
+        branchesState="ready"
+        branchesError={null}
+        branchesSource="steam"
         onBranchChange={vi.fn()}
         onStart={vi.fn()}
         onStop={vi.fn()}
         onRestart={vi.fn()}
         onKill={vi.fn()}
         onUpdate={vi.fn()}
+        onRefreshBranches={vi.fn()}
         onSendCommand={handleSendCommand}
+        instances={[]}
+        activeInstanceId={null}
+        onSelectInstance={vi.fn()}
       />
     );
 
@@ -113,6 +124,64 @@ describe('Organisms Components Tests', () => {
     fireEvent.click(screen.getByText(/Agregar a la Lista/i));
 
     expect(handleAddMod).toHaveBeenCalledWith('CheatMenu', '99999');
+  });
+
+  it('should render PortalPage with the Servers tab visible', () => {
+    render(
+      <PortalPage
+        status={buildStatus(ServerStatus.Running)}
+        logs={[]}
+        iniSettings={[]}
+        panelConfig={{ idleShutdownMinutes: 0, serverLanguage: 'es' }}
+        modsList={[]}
+        editorType={EditorType.Ini}
+        editorMode={EditorMode.Gui}
+        parsedConfigData={null}
+        rawConfigText=""
+        selectedBranch=""
+        availableBranches={[
+          { name: '', buildId: '1', timeUpdated: '', description: '', isDefault: true, isUnstable: false }
+        ]}
+        branchesState="ready"
+        branchesError={null}
+        branchesSource="steam"
+        savedMessage=""
+        instances={{ instances: [], activeInstanceId: null, loading: false, error: null }}
+        route={{ path: 'servers', serverId: null, configSubTab: 'editor' }}
+        onNavigateToConsole={() => undefined}
+        onNavigateToServers={() => undefined}
+        onNavigateToServerConfig={() => undefined}
+        onLogout={vi.fn()}
+        onBranchChange={vi.fn()}
+        onStart={vi.fn()}
+        onStop={vi.fn()}
+        onRestart={vi.fn()}
+        onKill={vi.fn()}
+        onUpdate={vi.fn()}
+        onRefreshBranches={vi.fn()}
+        onSendCommand={vi.fn()}
+        onIniSettingChange={vi.fn()}
+        onPanelConfigChange={vi.fn()}
+        onSaveSettings={vi.fn()}
+        onAddMod={vi.fn()}
+        onRemoveMod={vi.fn()}
+        onSaveMods={vi.fn()}
+        onEditorTypeChange={vi.fn()}
+        onEditorModeChange={vi.fn()}
+        onRawTextChange={vi.fn()}
+        onUpdateSandboxValue={vi.fn()}
+        onToggleSpawnRegion={vi.fn()}
+        onRemoveSpawnRegion={vi.fn()}
+        onSaveEditor={vi.fn()}
+        onCreateInstance={vi.fn() as any}
+        onSelectInstance={vi.fn() as any}
+        onInstallInstance={vi.fn() as any}
+        onDeleteInstance={vi.fn() as any}
+        onMigrateInstance={vi.fn() as any}
+      />
+    );
+    // The Servers tab must be present in the navigation
+    expect(screen.getByText(/^Servidores$/)).toBeDefined();
   });
 
   it('should render EditorPanel for INI, Sandbox and Spawn modes', () => {

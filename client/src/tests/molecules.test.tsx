@@ -6,7 +6,10 @@ import { NavTabs } from '../components/molecules/NavTabs.js';
 import { ControlBar } from '../components/molecules/ControlBar.js';
 import { GuiCard } from '../components/molecules/GuiCard.js';
 import { ModCard } from '../components/molecules/ModCard.js';
+import { AlertModal } from '../components/molecules/AlertModal.js';
 import { ServerStatus, PortalTab } from '../types.js';
+
+const noop = () => undefined;
 
 describe('Molecules Components Tests', () => {
   it('should render StatusWidget with badges, progress bars and values', () => {
@@ -23,12 +26,48 @@ describe('Molecules Components Tests', () => {
     expect(screen.getByText('Connected players')).toBeDefined();
   });
 
+  it('should render AlertModal for info and confirm dialogs', () => {
+    const handleClose = vi.fn();
+    const handleConfirm = vi.fn();
+
+    const { rerender } = render(
+      <AlertModal
+        isOpen={true}
+        type="info"
+        title="Test Title"
+        message="Test Message"
+        onClose={handleClose}
+      />
+    );
+
+    expect(screen.getByText('Test Title')).toBeDefined();
+    expect(screen.getByText('Test Message')).toBeDefined();
+
+    fireEvent.click(screen.getByRole('button', { name: /entendido/i }));
+    expect(handleClose).toHaveBeenCalled();
+
+    rerender(
+      <AlertModal
+        isOpen={true}
+        type="confirm"
+        title="Confirm Title"
+        message="Are you sure?"
+        onConfirm={handleConfirm}
+        onClose={handleClose}
+      />
+    );
+
+    expect(screen.getByText('Confirm Title')).toBeDefined();
+    fireEvent.click(screen.getByRole('button', { name: /confirmar/i }));
+    expect(handleConfirm).toHaveBeenCalled();
+  });
+
   it('should render NavTabs and fire tab change events', () => {
     const handleTabChange = vi.fn();
     render(<NavTabs activeTab={PortalTab.Console} onTabChange={handleTabChange} />);
 
-    fireEvent.click(screen.getByText(/Parámetros Principales/i));
-    expect(handleTabChange).toHaveBeenCalledWith(PortalTab.Settings);
+    fireEvent.click(screen.getByText(/Servidores/i));
+    expect(handleTabChange).toHaveBeenCalledWith(PortalTab.Servers);
   });
 
   it('should render ControlBar and trigger actions', () => {
@@ -40,12 +79,41 @@ describe('Molecules Components Tests', () => {
       <ControlBar
         status={ServerStatus.Stopped}
         selectedBranch=""
+        availableBranches={[
+          { name: '', buildId: '12345', timeUpdated: '', description: '', isDefault: true, isUnstable: false },
+          { name: 'unstable', buildId: '67890', timeUpdated: '', description: 'Latest unstable', isDefault: false, isUnstable: true },
+          { name: 'b42stable', buildId: '67891', timeUpdated: '', description: 'Build 42 stable', isDefault: false, isUnstable: false }
+        ]}
+        branchesState="ready"
+        branchesError={null}
+        branchesSource="steam"
         onBranchChange={handleBranchChange}
         onStart={handleStart}
         onStop={handleStop}
         onRestart={vi.fn()}
         onKill={vi.fn()}
         onUpdate={vi.fn()}
+        onRefreshBranches={vi.fn()}
+        instances={[
+          {
+            id: 'inst-1',
+            name: 'servertest',
+            branch: '',
+            installed: true,
+            status: 'STOPPED',
+            installPath: '',
+            dataPath: '',
+            gamePort: 16261,
+            rconPort: 27015,
+            maxPlayers: 16,
+            lastError: null,
+            createdAt: 1,
+            updatedAt: 1,
+            lastInstalledAt: null
+          }
+        ]}
+        activeInstanceId="inst-1"
+        onSelectInstance={noop}
       />
     );
 
@@ -53,9 +121,8 @@ describe('Molecules Components Tests', () => {
     fireEvent.click(startBtn);
     expect(handleStart).toHaveBeenCalled();
 
-    const selectEl = screen.getByRole('combobox');
-    fireEvent.change(selectEl, { target: { value: 'unstable' } });
-    expect(handleBranchChange).toHaveBeenCalledWith('unstable');
+    const serverSelect = screen.getByRole('combobox', { name: /active server selector/i });
+    expect(serverSelect).toBeDefined();
   });
 
   it('should render GuiCard for boolean, select, number and text fields', () => {

@@ -13,7 +13,7 @@ const VARIANT_CLASS_MAP: Record<ButtonVariant, (active: boolean) => string> = {
   [ButtonVariant.Warning]: () => 'btn btn-warning',
   [ButtonVariant.Danger]: () => 'btn btn-danger',
   [ButtonVariant.Logout]: () => 'btn-logout',
-  [ButtonVariant.Control]: () => 'control-btn',
+  [ButtonVariant.Control]: () => 'btn btn-control',
   [ButtonVariant.Toggle]: (active) => `toggle-btn${active ? ' active' : ''}`,
   [ButtonVariant.EditorSelect]: (active) => `editor-select-btn${active ? ' active' : ''}`,
   [ButtonVariant.Nav]: (active) => `nav-item${active ? ' active' : ''}`

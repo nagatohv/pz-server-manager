@@ -82,27 +82,18 @@ COPY --from=builder --chown=steam:steam /app/client/dist /home/steam/app/client/
 
 # Copiar los scripts de entrada y utilidades (entrypoint.sh)
 COPY --chown=steam:steam entrypoint.sh /home/steam/entrypoint.sh
-COPY --chown=steam:steam scripts/install-zomboid.sh /home/steam/install-zomboid.sh
-RUN chmod +x /home/steam/entrypoint.sh /home/steam/install-zomboid.sh
+RUN chmod +x /home/steam/entrypoint.sh
 
 # Crear la carpeta de datos persistente (donde se montará el volumen de Dokploy)
-RUN mkdir -p /home/steam/data
+RUN mkdir -p /home/steam/data/instances
 
 # Puertos expuestos:
 # 3000 -> Portal Web (HTTP)
-# 16261/udp -> Puerto principal de PZ
-# 16262/udp -> Puerto de conexión directa de PZ
-# 8766/udp -> Puerto de Steam Query
+# Las instancias de PZ se crean desde el portal y usan puertos configurables
 EXPOSE 3000
-EXPOSE 16261/udp
-EXPOSE 16262/udp
-EXPOSE 8766/udp
 
 # Variables de entorno por defecto
 ENV PORT=3000
 ENV DATA_DIR=/home/steam/data
-ENV SERVER_NAME=servertest
-ENV JVM_MIN_GB=4
-ENV JVM_MAX_GB=8
 
 ENTRYPOINT ["/home/steam/entrypoint.sh"]

@@ -66,8 +66,9 @@ export default class PzConfigRepository implements IConfigRepository {
   /**
    * Helper to resolve physical paths for different file types.
    */
-  getFilePath(type: string): string | null {
-    const configDir = path.join(this.systemConfig.ZO_USER_DIR, 'Server');
+  getFilePath(type: string, overrideDataDir?: string): string | null {
+    const userDir = overrideDataDir ?? this.systemConfig.ZO_USER_DIR;
+    const configDir = path.join(userDir, 'Server');
     switch (type) {
       case ConfigFileType.Ini:
         return path.join(configDir, `${this.systemConfig.SERVER_NAME}.ini`);
@@ -76,15 +77,14 @@ export default class PzConfigRepository implements IConfigRepository {
       case ConfigFileType.Spawn:
         return path.join(configDir, `${this.systemConfig.SERVER_NAME}_spawnregions.lua`);
       case ConfigFileType.Panel:
-        return path.join(this.systemConfig.DATA_DIR, 'panel_config.json');
+        return overrideDataDir
+          ? path.join(overrideDataDir, 'panel_config.json')
+          : path.join(this.systemConfig.DATA_DIR, 'panel_config.json');
       default:
         return null;
     }
   }
 
-  /**
-   * Ensure default files exist (creates initial templates if missing).
-   */
   ensureDefaultIni(filePath: string): void {
     const dir = path.dirname(filePath);
     if (!fs.existsSync(dir)) {
@@ -96,8 +96,8 @@ export default class PzConfigRepository implements IConfigRepository {
     }
   }
 
-  readIniSettings(): IniSetting[] {
-    const filePath = this.getFilePath(ConfigFileType.Ini);
+  readIniSettings(overrideDataDir?: string): IniSetting[] {
+    const filePath = this.getFilePath(ConfigFileType.Ini, overrideDataDir);
     if (!filePath) throw new Error(SERVER_STRINGS.ERR_INVALID_FILE_TYPE);
     this.ensureDefaultIni(filePath);
 
@@ -110,8 +110,8 @@ export default class PzConfigRepository implements IConfigRepository {
     }
   }
 
-  saveIniSettings(settingsObj: Record<string, string>): { success: boolean } {
-    const filePath = this.getFilePath(ConfigFileType.Ini);
+  saveIniSettings(settingsObj: Record<string, string>, overrideDataDir?: string): { success: boolean } {
+    const filePath = this.getFilePath(ConfigFileType.Ini, overrideDataDir);
     if (!filePath) throw new Error(SERVER_STRINGS.ERR_INVALID_FILE_TYPE);
     try {
       const rawContent = fs.existsSync(filePath) ? fs.readFileSync(filePath, 'utf8') : '';
@@ -128,8 +128,8 @@ export default class PzConfigRepository implements IConfigRepository {
     }
   }
 
-  readPanelConfig(): PanelConfig {
-    const filePath = this.getFilePath(ConfigFileType.Panel);
+  readPanelConfig(overrideDataDir?: string): PanelConfig {
+    const filePath = this.getFilePath(ConfigFileType.Panel, overrideDataDir);
     if (!filePath || !fs.existsSync(filePath)) {
       return { ...DEFAULT_PANEL_CONFIG };
     }
@@ -145,8 +145,8 @@ export default class PzConfigRepository implements IConfigRepository {
     }
   }
 
-  savePanelConfig(config: PanelConfig): PanelConfig {
-    const filePath = this.getFilePath(ConfigFileType.Panel);
+  savePanelConfig(config: PanelConfig, overrideDataDir?: string): PanelConfig {
+    const filePath = this.getFilePath(ConfigFileType.Panel, overrideDataDir);
     if (!filePath) throw new Error(SERVER_STRINGS.ERR_INVALID_FILE_TYPE);
     try {
       const dir = path.dirname(filePath);
@@ -165,8 +165,8 @@ export default class PzConfigRepository implements IConfigRepository {
     }
   }
 
-  readRawFile(type: string): string {
-    const filePath = this.getFilePath(type);
+  readRawFile(type: string, overrideDataDir?: string): string {
+    const filePath = this.getFilePath(type, overrideDataDir);
     if (!filePath) throw new Error(SERVER_STRINGS.ERR_INVALID_FILE_TYPE);
 
     if (!fs.existsSync(filePath)) {
@@ -180,14 +180,13 @@ export default class PzConfigRepository implements IConfigRepository {
     }
   }
 
-  saveRawFile(type: string, content: string): { success: boolean } {
-    const filePath = this.getFilePath(type);
+  saveRawFile(type: string, content: string, overrideDataDir?: string): { success: boolean } {
+    const filePath = this.getFilePath(type, overrideDataDir);
     if (!filePath) throw new Error(SERVER_STRINGS.ERR_INVALID_FILE_TYPE);
 
     try {
-      // Path Traversal Mitigation: Ensure we only write inside our configured directories
       const resolvedPath = path.resolve(filePath);
-      const allowedDir1 = path.resolve(this.systemConfig.ZO_USER_DIR);
+      const allowedDir1 = path.resolve(overrideDataDir ?? this.systemConfig.ZO_USER_DIR);
       const allowedDir2 = path.resolve(this.systemConfig.DATA_DIR);
 
       if (!resolvedPath.startsWith(allowedDir1) && !resolvedPath.startsWith(allowedDir2)) {

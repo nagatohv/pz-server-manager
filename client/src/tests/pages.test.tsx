@@ -12,13 +12,16 @@ const baseStatus = {
   idleShutdown: { minutes: 0, active: false, remainingSeconds: 0 }
 };
 
+const dummyRoute = { path: 'console' as const, serverId: null, configSubTab: 'editor' as const };
+const noop = () => undefined;
+
 describe('Pages Components Tests', () => {
   it('should render LoginPage component', () => {
     render(<LoginPage onLogin={vi.fn()} />);
     expect(screen.getByText(/PZ Server Manager/i)).toBeDefined();
   });
 
-  it('should render PortalPage component and switch tabs', () => {
+  it('should render PortalPage component', () => {
     render(
       <PortalPage
         status={baseStatus}
@@ -31,7 +34,18 @@ describe('Pages Components Tests', () => {
         parsedConfigData={[{ key: 'PVP', value: 'true', description: 'PVP' }]}
         rawConfigText=""
         selectedBranch=""
+        availableBranches={[
+          { name: '', buildId: '12345', timeUpdated: '', description: '', isDefault: true, isUnstable: false }
+        ]}
+        branchesState="ready"
+        branchesError={null}
+        branchesSource="steam"
         savedMessage=""
+        instances={{ instances: [], activeInstanceId: null, loading: false, error: null }}
+        route={dummyRoute}
+        onNavigateToConsole={noop}
+        onNavigateToServers={noop}
+        onNavigateToServerConfig={noop}
         onLogout={vi.fn()}
         onBranchChange={vi.fn()}
         onStart={vi.fn()}
@@ -39,6 +53,7 @@ describe('Pages Components Tests', () => {
         onRestart={vi.fn()}
         onKill={vi.fn()}
         onUpdate={vi.fn()}
+        onRefreshBranches={vi.fn()}
         onSendCommand={vi.fn()}
         onIniSettingChange={vi.fn()}
         onPanelConfigChange={vi.fn()}
@@ -53,18 +68,14 @@ describe('Pages Components Tests', () => {
         onToggleSpawnRegion={vi.fn()}
         onRemoveSpawnRegion={vi.fn()}
         onSaveEditor={vi.fn()}
+        onCreateInstance={vi.fn() as any}
+        onSelectInstance={vi.fn() as any}
+        onInstallInstance={vi.fn() as any}
+        onDeleteInstance={vi.fn() as any}
+        onMigrateInstance={vi.fn() as any}
       />
     );
 
     expect(screen.getByText(/Consola y Control/i)).toBeDefined();
-
-    fireEvent.click(screen.getByText(/Parámetros Principales/i));
-    expect(screen.getByText(/Opciones Generales del Servidor y Portal/i)).toBeDefined();
-
-    fireEvent.click(screen.getByText(/Gestión de Mods/i));
-    expect(screen.getByText(/Añadir Nuevo Mod de Steam Workshop/i)).toBeDefined();
-
-    fireEvent.click(screen.getByText(/Configuración Avanzada/i));
-    expect(screen.getByText(/server.ini/i)).toBeDefined();
   });
 });

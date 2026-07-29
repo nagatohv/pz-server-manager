@@ -29,11 +29,82 @@ export const CLIENT_STRINGS = {
     UNKNOWN_ERROR: 'Ocurrió un error desconocido'
   },
 
+  MODAL: {
+    ALERT_TITLE: 'Aviso del Sistema',
+    ERROR_TITLE: 'Error en la Operación',
+    SUCCESS_TITLE: 'Operación Exitosa',
+    CONFIRM_TITLE: 'Confirmación Requerida',
+    CONFIRM_DELETE_TITLE: 'Confirmar Eliminación',
+    ACCEPT_BTN: 'Entendido',
+    CONFIRM_BTN: 'Confirmar',
+    CANCEL_BTN: 'Cancelar'
+  },
+
+  SERVERS_PAGE: {
+    TITLE: 'Servidores de Project Zomboid',
+    SUBTITLE: 'Crea distintos servidores con diferentes versiones, configura sus puertos y migra datos entre ellos.',
+    EMPTY_TITLE: 'No hay servidores todavía',
+    EMPTY_SUBTITLE: 'Crea tu primer servidor para empezar. No se descargará nada hasta que confirmes la versión.',
+    CREATE_BTN: 'Crear Servidor',
+    NAME_LABEL: 'Nombre del servidor',
+    NAME_PLACEHOLDER: 'ej: servertest',
+    BRANCH_LABEL: 'Rama de Steam',
+    BRANCH_PUBLIC_DEFAULT: 'Rama pública (por defecto)',
+    BRANCH_PLACEHOLDER: 'ej: b42stable (vacío para rama pública)',
+    BRANCH_OPTION_WITH_BUILD: '{name} (Build {buildId})',
+    BRANCH_FALLBACK_HINT: 'No se pudo conectar con Steam: mostrando lista de respaldo local.',
+    GAME_PORT_LABEL: 'Puerto de juego (UDP)',
+    RCON_PORT_LABEL: 'Puerto RCON (TCP)',
+    MAX_PLAYERS_LABEL: 'Máximo de jugadores',
+    SELECT_BTN: 'Activar',
+    INSTALL_BTN: 'Instalar / Actualizar',
+    START_BTN: 'Iniciar Servidor',
+    UPDATE_BTN: 'Actualizar',
+    DELETE_BTN: 'Eliminar',
+    MIGRATE_BTN: 'Migrar datos…',
+    INSTALLED_BADGE: 'Instalado',
+    NOT_INSTALLED_BADGE: 'Sin instalar',
+    ACTIVE_BADGE: 'Activo',
+    LAST_ERROR_LABEL: 'Último error',
+    CONFIRM_DELETE_TITLE: 'Eliminar servidor',
+    CONFIRM_DELETE_MSG: '¿Seguro que quieres eliminar "{name}"? Se borrará también todo su directorio (instalación Steam y datos de usuario).',
+    MIGRATE_DIALOG_TITLE: 'Migrar datos de usuario',
+    MIGRATE_DIALOG_DESC: 'Copia la carpeta Zomboid/ de la instancia origen a la instancia destino. NO se toca la instalación Steam.',
+    MIGRATE_SOURCE_LABEL: 'Instancia origen',
+    MIGRATE_TARGET_LABEL: 'Instancia destino',
+    MIGRATE_BTN_CONFIRM: 'Migrar datos',
+    MIGRATE_SUCCESS: 'Migración completada: {files} archivo(s), {bytes} bytes copiados.',
+    MIGRATE_CONFIRM_TITLE: 'Migrar a "{name}"'
+  },
+
   NAV_TABS: {
     CONSOLE: 'Consola y Control',
     SETTINGS: 'Parámetros Principales',
     MODS: 'Gestión de Mods',
-    EDITOR: 'Configuración Avanzada'
+    EDITOR: 'Configuración Avanzada',
+    SERVERS: 'Servidores',
+    BACKUPS: 'Respaldos (Backups)'
+  },
+
+  BACKUPS: {
+    TITLE: 'Gestión de Respaldos de Servidor',
+    SUBTITLE: 'Crea, restaura y administra copias de seguridad de las partidas guardadas y configuraciones.',
+    CREATE_BTN: 'Crear Respaldo Ahora',
+    NOTE_LABEL: 'Nota / Descripción del respaldo',
+    NOTE_PLACEHOLDER: 'ej: Respaldo previo a actualización 42.19, previo a torneo PvP...',
+    RESTORE_BTN: 'Restaurar',
+    DELETE_BTN: 'Eliminar',
+    CONFIRM_RESTORE_TITLE: '¿Restaurar Respaldo?',
+    CONFIRM_RESTORE_MSG: 'Se reemplazará la partida guardada y configuración actual por la del respaldo "{name}". ¿Deseas continuar?',
+    CONFIRM_DELETE_TITLE: '¿Eliminar Respaldo?',
+    CONFIRM_DELETE_MSG: 'Se eliminará permanentemente el respaldo "{name}". Esta acción no se puede deshacer.',
+    EMPTY_TITLE: 'No hay respaldos guardados para este servidor',
+    EMPTY_DESC: 'Genera un respaldo manual antes de realizar cambios importantes o actualizar el servidor.',
+    COL_NAME: 'Identificador',
+    COL_DATE: 'Fecha y Hora',
+    COL_NOTE: 'Nota / Descripción',
+    COL_SIZE: 'Tamaño',
+    COL_ACTIONS: 'Acciones'
   },
 
   STATUS_WIDGETS: {
@@ -61,8 +132,17 @@ export const CLIENT_STRINGS = {
     RESTART_SERVER: 'Reiniciar',
     KILL_SERVER: 'Forzar Cierre',
     UPDATE_GAME: 'Actualizar Juego (SteamCMD)',
-    BRANCH_STABLE: 'Rama Estable (Build 41)',
-    BRANCH_UNSTABLE: 'Rama Unstable (Build 42)'
+    REFRESH_BRANCHES: 'Reconsultar Steam',
+    BRANCH_DEFAULT_NAME: 'Rama Pública (Estable)',
+    BRANCH_LABEL_WITH_BUILD: '{name} (Build {buildId})',
+    BRANCH_LOADING: 'Consultando Steam…',
+    BRANCH_LOAD_ERROR: 'No se pudieron obtener las ramas',
+    BRANCH_NO_DATA: 'Steam no devolvió ramas',
+    BRANCH_ERROR_PREFIX: 'Error al consultar Steam:',
+    BRANCH_SOURCE_STEAM: 'Catálogo en vivo desde Steam',
+    BRANCH_SOURCE_FALLBACK: 'Lista de respaldo (SteamCMD no devolvió ramas reales)',
+    SERVER_SELECT_LABEL: 'Servidor Activo:',
+    NO_SERVERS_AVAILABLE: 'No hay servidores creados'
   },
 
   CONSOLE_PANEL: {

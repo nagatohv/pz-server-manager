@@ -17,9 +17,7 @@ interface TabDefinition {
 
 const TAB_DEFINITIONS: TabDefinition[] = [
   { id: PortalTab.Console, label: CLIENT_STRINGS.NAV_TABS.CONSOLE, icon: <TerminalIcon /> },
-  { id: PortalTab.Settings, label: CLIENT_STRINGS.NAV_TABS.SETTINGS, icon: <SettingsIcon /> },
-  { id: PortalTab.Mods, label: CLIENT_STRINGS.NAV_TABS.MODS, icon: <PuzzleIcon /> },
-  { id: PortalTab.Editor, label: CLIENT_STRINGS.NAV_TABS.EDITOR, icon: <FileIcon /> }
+  { id: PortalTab.Servers, label: CLIENT_STRINGS.NAV_TABS.SERVERS, icon: <FileIcon /> }
 ];
 
 export const NavTabs: React.FC<NavTabsProps> = ({ activeTab, onTabChange }) => (

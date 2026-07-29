@@ -41,7 +41,7 @@ const parseModsFromSettings = (settings: IniSettingItem[]): ModItem[] => {
 const buildSettingsMap = (settings: IniSettingItem[]): Record<string, string> =>
   Object.fromEntries(settings.map((item) => [item.key, item.value]));
 
-export function useConfigManager(token: string | null, onSessionExpired: () => void) {
+export function useConfigManager(token: string | null, onSessionExpired: () => void, targetInstanceId?: string | null) {
   const [iniSettings, setIniSettings] = useState<IniSettingItem[]>([]);
   const [panelConfig, setPanelConfig] = useState<PanelConfig>(DEFAULT_PANEL_CONFIG);
   const [modsList, setModsList] = useState<ModItem[]>([]);
@@ -59,9 +59,10 @@ export function useConfigManager(token: string | null, onSessionExpired: () => v
   const fetchInitialData = useCallback(async () => {
     if (!token) return;
     try {
+      const instanceId = targetInstanceId ?? undefined;
       const [settings, config] = await Promise.all([
-        ApiService.getIniSettings(token),
-        ApiService.getPanelConfig(token)
+        ApiService.getIniSettings(token, instanceId),
+        ApiService.getPanelConfig(token, instanceId)
       ]);
       setIniSettings(settings);
       setPanelConfig(config);
@@ -69,22 +70,23 @@ export function useConfigManager(token: string | null, onSessionExpired: () => v
     } catch (e: unknown) {
       if (e instanceof Error && isAuthError(e.message)) onSessionExpired();
     }
-  }, [token, onSessionExpired]);
+  }, [token, targetInstanceId, onSessionExpired]);
 
   const fetchEditorData = useCallback(async () => {
     if (!token) return;
     try {
+      const instanceId = targetInstanceId ?? undefined;
       if (editorMode === EditorMode.Gui) {
-        const data = await ApiService.getParsedConfig(token, editorType);
+        const data = await ApiService.getParsedConfig(token, editorType, instanceId);
         setParsedConfigData(data);
       } else {
-        const text = await ApiService.getRawConfig(token, editorType);
+        const text = await ApiService.getRawConfig(token, editorType, instanceId);
         setRawConfigText(text);
       }
     } catch (e: unknown) {
       if (e instanceof Error && isAuthError(e.message)) onSessionExpired();
     }
-  }, [token, editorType, editorMode, onSessionExpired]);
+  }, [token, editorType, editorMode, targetInstanceId, onSessionExpired]);
 
   useEffect(() => { fetchInitialData(); }, [fetchInitialData]);
   useEffect(() => { fetchEditorData(); }, [fetchEditorData]);
@@ -101,12 +103,13 @@ export function useConfigManager(token: string | null, onSessionExpired: () => v
 
   const saveSettings = useCallback(async () => {
     if (!token) return;
+    const instanceId = targetInstanceId ?? undefined;
     await Promise.all([
-      ApiService.saveIniSettings(token, buildSettingsMap(iniSettings)),
-      ApiService.savePanelConfig(token, panelConfig)
+      ApiService.saveIniSettings(token, buildSettingsMap(iniSettings), instanceId),
+      ApiService.savePanelConfig(token, panelConfig, instanceId)
     ]);
     showSuccess(CLIENT_STRINGS.SETTINGS_PANEL.SUCCESS_MESSAGE);
-  }, [token, iniSettings, panelConfig, showSuccess]);
+  }, [token, iniSettings, panelConfig, targetInstanceId, showSuccess]);
 
   const addMod = useCallback((modId: string, workshopId: string) => {
     setModsList((prev) => [...prev, { modId, workshopId }]);
@@ -118,6 +121,7 @@ export function useConfigManager(token: string | null, onSessionExpired: () => v
 
   const saveMods = useCallback(async () => {
     if (!token) return;
+    const instanceId = targetInstanceId ?? undefined;
     const modsStr = modsList.map((m) => m.modId).filter(Boolean).join(MOD_LIST_SEPARATOR);
     const workshopStr = modsList.map((m) => m.workshopId).filter(Boolean).join(MOD_LIST_SEPARATOR);
 
@@ -128,9 +132,9 @@ export function useConfigManager(token: string | null, onSessionExpired: () => v
     });
 
     setIniSettings(updatedSettings);
-    await ApiService.saveIniSettings(token, buildSettingsMap(updatedSettings));
+    await ApiService.saveIniSettings(token, buildSettingsMap(updatedSettings), instanceId);
     showSuccess(CLIENT_STRINGS.MODS_PANEL.SUCCESS_MESSAGE);
-  }, [token, modsList, iniSettings, showSuccess]);
+  }, [token, modsList, iniSettings, targetInstanceId, showSuccess]);
 
   const updateSandboxValue = useCallback((pathStr: string, newVal: unknown) => {
     setParsedConfigData((prev: unknown) => {
@@ -171,10 +175,11 @@ export function useConfigManager(token: string | null, onSessionExpired: () => v
 
   const saveEditor = useCallback(async () => {
     if (!token) return;
+    const instanceId = targetInstanceId ?? undefined;
     if (editorMode === EditorMode.Raw) {
-      await ApiService.saveRawConfig(token, editorType, rawConfigText);
+      await ApiService.saveRawConfig(token, editorType, rawConfigText, instanceId);
     } else {
-      await ApiService.saveParsedConfig(token, editorType, parsedConfigData);
+      await ApiService.saveParsedConfig(token, editorType, parsedConfigData, instanceId);
     }
 
     showSuccess(
@@ -183,7 +188,7 @@ export function useConfigManager(token: string | null, onSessionExpired: () => v
         editorType.toUpperCase()
       )
     );
-  }, [token, editorMode, editorType, rawConfigText, parsedConfigData, showSuccess]);
+  }, [token, editorMode, editorType, rawConfigText, parsedConfigData, targetInstanceId, showSuccess]);
 
   return {
     iniSettings,

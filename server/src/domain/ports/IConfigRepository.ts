@@ -5,10 +5,10 @@
 import type { IniSetting, PanelConfig } from '../../types.js';
 
 export default interface IConfigRepository {
-  readIniSettings(): IniSetting[];
-  saveIniSettings(settings: Record<string, string>): { success: boolean };
-  readPanelConfig(): PanelConfig;
-  savePanelConfig(config: PanelConfig): PanelConfig;
-  readRawFile(type: string): string;
-  saveRawFile(type: string, content: string): { success: boolean };
+  readIniSettings(overrideDataDir?: string): IniSetting[];
+  saveIniSettings(settings: Record<string, string>, overrideDataDir?: string): { success: boolean };
+  readPanelConfig(overrideDataDir?: string): PanelConfig;
+  savePanelConfig(config: PanelConfig, overrideDataDir?: string): PanelConfig;
+  readRawFile(type: string, overrideDataDir?: string): string;
+  saveRawFile(type: string, content: string, overrideDataDir?: string): { success: boolean };
 }

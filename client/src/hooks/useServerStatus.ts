@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { ApiService } from '../services/apiService.js';
 import {
+  BranchInfo,
+  BranchCatalogSource,
   ServerStatus,
   ServerStatusPayload,
   WsMessageType,
@@ -31,25 +33,72 @@ const buildWebSocketUrl = (token: string): string => {
   return `${protocol}//${window.location.host}${WS_PATH}?token=${token}`;
 };
 
-export function useServerStatus(token: string | null, onSessionExpired: () => void) {
+export type BranchLoadState = 'idle' | 'loading' | 'ready' | 'error';
+
+export function useServerStatus(
+  token: string | null,
+  onSessionExpired: () => void,
+  onError?: (msg: string) => void
+) {
   const [status, setStatus] = useState<ServerStatusPayload>(DEFAULT_STATUS);
   const [logs, setLogs] = useState<string[]>([]);
   const [selectedBranch, setSelectedBranch] = useState<string>('');
+  const [availableBranches, setAvailableBranches] = useState<BranchInfo[]>([]);
+  const [branchesError, setBranchesError] = useState<string | null>(null);
+  const [branchesState, setBranchesState] = useState<BranchLoadState>('idle');
+  const [branchesSource, setBranchesSource] = useState<BranchCatalogSource>('steam');
   const wsRef = useRef<WebSocket | null>(null);
+  const tokenRef = useRef<string | null>(token);
+  tokenRef.current = token;
 
   const fetchStatus = useCallback(async () => {
-    if (!token) return;
+    const t = tokenRef.current;
+    if (!t) return;
     try {
-      const data = await ApiService.getStatus(token);
+      const data = await ApiService.getStatus(t);
       setStatus(data);
     } catch (e: unknown) {
       if (e instanceof Error && isAuthError(e.message)) onSessionExpired();
     }
-  }, [token, onSessionExpired]);
+  }, [onSessionExpired]);
+
+  const fetchBranches = useCallback(async () => {
+    const t = tokenRef.current;
+    if (!t) return;
+    setBranchesState('loading');
+    try {
+      const snapshot = await ApiService.getBranchCatalogSnapshot(t);
+      applyBranchSnapshot(snapshot);
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : CLIENT_STRINGS.ERRORS.REQUEST_FAILED;
+      setAvailableBranches([]);
+      setBranchesError(message);
+      setBranchesState('error');
+    }
+  }, []);
+
+  const applyBranchSnapshot = useCallback((snapshot: {
+    branches: BranchInfo[];
+    isLoading: boolean;
+    error: string | null;
+    fetchedAt: number | null;
+    source?: BranchCatalogSource;
+  }) => {
+    setAvailableBranches(snapshot.branches);
+    setSelectedBranch((current) => {
+      if (current && snapshot.branches.some((b) => b.name === current)) return current;
+      if (snapshot.branches.length === 0) return '';
+      return snapshot.branches.find((b) => b.isDefault)?.name ?? snapshot.branches[0].name;
+    });
+    setBranchesError(snapshot.error ?? null);
+    setBranchesState(snapshot.isLoading ? 'loading' : 'ready');
+    setBranchesSource(snapshot.source ?? 'steam');
+  }, []);
 
   const connectWebSocket = useCallback(() => {
-    if (!token) return;
-    const ws = new WebSocket(buildWebSocketUrl(token));
+    const t = tokenRef.current;
+    if (!t) return;
+    const ws = new WebSocket(buildWebSocketUrl(t));
     wsRef.current = ws;
 
     ws.onmessage = (event: MessageEvent) => {
@@ -61,39 +110,54 @@ export function useServerStatus(token: string | null, onSessionExpired: () => vo
           setLogs(msg.data as string[]);
         } else if (msg.type === WsMessageType.StatusUpdate) {
           setStatus(msg.data as ServerStatusPayload);
+        } else if (msg.type === WsMessageType.BranchesUpdate) {
+          const snapshot = msg.data as {
+            branches: BranchInfo[];
+            isLoading: boolean;
+            error: string | null;
+            fetchedAt: number | null;
+            source?: BranchCatalogSource;
+          };
+          if (snapshot && Array.isArray(snapshot.branches)) {
+            applyBranchSnapshot(snapshot);
+          }
         }
       } catch (_) {}
     };
 
     ws.onclose = () => {
       setTimeout(() => {
-        if (token) connectWebSocket();
+        if (tokenRef.current) connectWebSocket();
       }, WS_RECONNECT_DELAY_MS);
     };
-  }, [token]);
+  }, [applyBranchSnapshot]);
 
   useEffect(() => {
     if (!token) return;
     fetchStatus();
+    fetchBranches();
     connectWebSocket();
 
     return () => {
       wsRef.current?.close();
     };
-  }, [token, fetchStatus, connectWebSocket]);
+  }, [token, fetchStatus, fetchBranches, connectWebSocket]);
 
   const executeAction = useCallback(
     async (action: ServerAction, branch?: string) => {
-      if (!token) return;
+      const t = tokenRef.current;
+      if (!t) return;
       try {
-        await ApiService.executeControlAction(token, action, branch);
+        await ApiService.executeControlAction(t, action, branch);
         await fetchStatus();
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : CLIENT_STRINGS.ERRORS.UNKNOWN_ERROR;
-        alert(msg);
+        if (onError) {
+          onError(msg);
+        }
       }
     },
-    [token, fetchStatus]
+    [fetchStatus, onError]
   );
 
   const sendCommand = useCallback((command: string) => {
@@ -107,6 +171,11 @@ export function useServerStatus(token: string | null, onSessionExpired: () => vo
     logs,
     selectedBranch,
     setSelectedBranch,
+    availableBranches,
+    branchesState,
+    branchesError,
+    branchesSource,
+    refreshBranches: fetchBranches,
     executeAction,
     sendCommand
   };

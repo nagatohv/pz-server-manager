@@ -159,6 +159,15 @@ class PzProcessControlService implements IServerControlService {
     this.notifyObservers(ObserverEventType.Log, logLine);
   }
 
+  /**
+   * Public hook for sibling services (e.g. the Steam branch catalog) that
+   * need to surface their progress in the same terminal buffer the operator
+   * is watching. The line is timestamped and broadcast to all WS subscribers.
+   */
+  appendExternalLog(line: string): void {
+    this.appendLog(line);
+  }
+
   private broadcastStatus(): void {
     this.notifyObservers(ObserverEventType.StatusUpdate, this.getStatus());
   }

@@ -6,17 +6,19 @@ El proyecto mantiene una separación limpia entre el **Backend (`server/`)** y e
 
 ---
 
-## ✨ Características Principales
+## ✨ Características Principiales
 
-*   **Frontend en Atomic Design (`client/`)**: Interfaz desacoplada en **Átomos**, **Moléculas**, **Organismos** y **Páginas**, evitando componentes gigantes de código y facilitando el mantenimiento y reutilización.
-*   **Arquitectura Desacoplada y Modular**: Proyectos independientes en `server/` (Node.js + Express + WebSockets) y `client/` (React + Vite), cada uno con su propio `package.json`, `tsconfig.json` y runner de pruebas Vitest.
+*   **Frontend en Atomic Design (`client/`)**: Interfaz desacoplada en **Átomos**, **Moléculas**, **Organismos** y **Páginas**.
+*   **Arquitectura Desacoplada y Modular**: Proyectos independientes en `server/` (Node.js + Express + WebSockets) y `client/` (React + Vite).
+*   **Multi-servidor**: Crea varios servidores con distintas versiones (Build 41, Build 42 estable, Build 42 inestable, etc.) y puertos. Migra los datos de usuario entre instancias o elimínalas con un click.
+*   **Sin auto-install**: El portal arranca vacío. Nada se descarga hasta que el operador crea una instancia y pulsa **Instalar / Actualizar**.
 *   **Clean Architecture & Patrones GoF**:
-    *   **Strategy**: Parsers desacoplados para archivos `.ini`, `SandboxVars.lua` y `spawnregions.lua`.
-    *   **Observer**: Transmisión de logs y métricas del sistema vía WebSockets en tiempo real.
+    *   **Strategy**: Parsers desacoplados para `.ini`, `SandboxVars.lua`, `spawnregions.lua` y `VdfParser` (SteamCMD).
+    *   **Observer**: Logs y métricas vía WebSockets en tiempo real, incluyendo actualizaciones del catálogo de ramas.
     *   **Singleton & DIP**: Control centralizado del ciclo de vida del proceso de Java.
-*   **Pruebas Unitarias & Cobertura (>90%)**: Suite de pruebas automatizadas independientes en `server/` y `client/` alcanzando **>90% de cobertura** de código (`npm run test:coverage`).
-*   **Cero Hardcode**: Rutas de API HTTP, códigos de estado, comandos de consola, señales de OS (`SIGKILL`) y cadenas del sistema totalmente aisladas en `constants.ts` y `strings.ts`.
-*   **Panel Web Interactivo & Elegante**: Tema oscuro ciberpunk con *glassmorphism*, terminal en vivo, editor visual/avanzado de parámetros del juego y gestión de mods de Steam Workshop.
+*   **Pruebas Unitarias & Cobertura (>90%)**: `npm run test:coverage` en backend y frontend.
+*   **Cero Hardcode**: Constantes y cadenas aisladas en `constants.ts` y `strings.ts`.
+*   **Panel Web Interactivo & Elegante**: Tema oscuro ciberpunk, terminal en vivo, editor visual, gestión de mods y de servidores.
 
 ---
 

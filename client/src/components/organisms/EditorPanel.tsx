@@ -4,13 +4,15 @@ import { GuiCard } from '../molecules/GuiCard.js';
 import { translateDescription } from '../../utils/translator.js';
 import { CLIENT_STRINGS } from '../../config/strings.js';
 import { SANDBOX_CATEGORY_COLOR } from '../../config/constants.js';
-import { EditorType, EditorMode, ButtonVariant } from '../../types.js';
+import { EditorType, EditorMode, ButtonVariant, type PanelConfig } from '../../types.js';
 
 interface EditorPanelProps {
   editorType: EditorType;
   editorMode: EditorMode;
   parsedConfigData: unknown;
   rawConfigText: string;
+  panelConfig?: PanelConfig;
+  onPanelConfigChange?: (field: keyof PanelConfig, val: unknown) => void;
   onTypeChange: (type: EditorType) => void;
   onModeChange: (mode: EditorMode) => void;
   onRawTextChange: (text: string) => void;
@@ -21,19 +23,77 @@ interface EditorPanelProps {
   savedMessage: string;
 }
 
-const renderIniEditor = (data: unknown): React.ReactNode => {
+const renderPanelConfigSection = (
+  panelConfig?: PanelConfig,
+  onPanelConfigChange?: (field: keyof PanelConfig, val: unknown) => void
+): React.ReactNode => {
+  if (!panelConfig || !onPanelConfigChange) return null;
+  return (
+    <div className="card-section card-section--panel-config">
+      <h4 className="sandbox-category-title" style={{ color: 'var(--primary)' }}>
+        Inactividad y Opciones de Portal
+      </h4>
+      <div className="gui-grid">
+        <div className="gui-card">
+          <div className="gui-card__header">
+            <label className="gui-card__title">Apagado por Inactividad (minutos)</label>
+            <span className="gui-card__type">NUMÉRICO</span>
+          </div>
+          <input
+            type="number"
+            min={0}
+            className="form-control"
+            value={panelConfig.idleShutdownMinutes}
+            onChange={(e) => onPanelConfigChange('idleShutdownMinutes', Math.max(0, parseInt(e.target.value, 10) || 0))}
+          />
+          <p className="gui-card__desc">0 = Apagado por inactividad desactivado</p>
+        </div>
+
+        <div className="gui-card">
+          <div className="gui-card__header">
+            <label className="gui-card__title">Idioma del Servidor</label>
+            <span className="gui-card__type">SELECCIÓN</span>
+          </div>
+          <select
+            className="form-control"
+            value={panelConfig.serverLanguage}
+            onChange={(e) => onPanelConfigChange('serverLanguage', e.target.value)}
+          >
+            <option value="es">Español</option>
+            <option value="en">English</option>
+          </select>
+          <p className="gui-card__desc">Idioma para notificaciones e interfaz</p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const renderIniEditor = (
+  data: unknown,
+  panelConfig?: PanelConfig,
+  onPanelConfigChange?: (field: keyof PanelConfig, val: unknown) => void
+): React.ReactNode => {
   const items = Array.isArray(data) ? data : [];
   return (
-    <div className="gui-grid">
-      {items.map((item) => (
-        <GuiCard
-          key={item.key}
-          itemKey={item.key}
-          value={item.value}
-          onChange={(newVal) => { item.value = String(newVal); }}
-          description={translateDescription(item.key, item.description)}
-        />
-      ))}
+    <div className="gui-categories">
+      {renderPanelConfigSection(panelConfig, onPanelConfigChange)}
+      <div className="card-section card-section--ini">
+        <h4 className="sandbox-category-title" style={{ color: 'var(--primary)' }}>
+          Parámetros Directos (server.ini)
+        </h4>
+        <div className="gui-grid">
+          {items.map((item) => (
+            <GuiCard
+              key={item.key}
+              itemKey={item.key}
+              value={item.value}
+              onChange={(newVal) => { item.value = String(newVal); }}
+              description={translateDescription(item.key, item.description)}
+            />
+          ))}
+        </div>
+      </div>
     </div>
   );
 };
@@ -123,6 +183,8 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
   editorMode,
   parsedConfigData,
   rawConfigText,
+  panelConfig,
+  onPanelConfigChange,
   onTypeChange,
   onModeChange,
   onRawTextChange,
@@ -136,7 +198,7 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
     if (!parsedConfigData) {
       return <p className="empty-text">{CLIENT_STRINGS.EDITOR_PANEL.LOADING_TEXT}</p>;
     }
-    if (editorType === EditorType.Ini) return renderIniEditor(parsedConfigData);
+    if (editorType === EditorType.Ini) return renderIniEditor(parsedConfigData, panelConfig, onPanelConfigChange);
     if (editorType === EditorType.Sandbox) return renderSandboxEditor(parsedConfigData, onUpdateSandboxValue);
     if (editorType === EditorType.Spawn) return renderSpawnEditor(parsedConfigData, onToggleSpawnRegion, onRemoveSpawnRegion);
     return null;
