@@ -314,13 +314,13 @@ export class PzInstanceService implements IPzInstanceService {
     const args = [
       steamCmdPath,
       '+force_install_dir', instance.installPath,
-      '+login', 'anonymous',
-      '+app_update', SERVER_CONSTANTS.STEAM_APP_ID
+      '+login', 'anonymous'
     ];
     if (instance.branch && instance.branch !== 'public') {
-      args.push('-beta', instance.branch);
+      args.push('+app_update', SERVER_CONSTANTS.STEAM_APP_ID, '-beta', instance.branch, 'validate', '+quit');
+    } else {
+      args.push('+app_update', SERVER_CONSTANTS.STEAM_APP_ID, 'validate', '+quit');
     }
-    args.push('validate', '+quit');
 
     const { success, errorMessage } = await this.runSteamCmd(id, args);
     const now = Date.now();
