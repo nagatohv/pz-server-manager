@@ -309,6 +309,36 @@ export default function createExpressApp(
     }
   });
 
+  // Get Inactivity Panel Config (Instance-scoped)
+  app.get('/api/instances/:id/config/panel', authenticate, async (req: Request, res: Response) => {
+    try {
+      const dataDir = await resolveInstanceDataDir(req.params.id);
+      return res.json(manageConfigUseCase.getPanelConfig(dataDir));
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      return res.status(SERVER_CONSTANTS.HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ error: message });
+    }
+  });
+
+  // Save Inactivity Panel Config (Instance-scoped)
+  app.post('/api/instances/:id/config/panel', authenticate, async (req: Request, res: Response) => {
+    try {
+      const dataDir = await resolveInstanceDataDir(req.params.id);
+      const cleanConfig: PanelConfig = manageConfigUseCase.savePanelConfig(req.body, dataDir);
+
+      // If this is the active/currently running instance, also update the active process control service config
+      const activeInstance = await instanceService.listInstances();
+      if (activeInstance.activeInstanceId === req.params.id) {
+        controlServerUseCase.serverControlService.setPanelConfig(cleanConfig);
+      }
+
+      return res.json({ success: true, config: cleanConfig });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      return res.status(SERVER_CONSTANTS.HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ error: message });
+    }
+  });
+
   // Get Raw File Contents (Instance-scoped)
   app.get('/api/instances/:id/config/raw/:type', authenticate, async (req: Request, res: Response) => {
     const { id, type } = req.params;

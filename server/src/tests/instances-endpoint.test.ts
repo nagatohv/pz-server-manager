@@ -205,6 +205,24 @@ describe('PZ instances HTTP endpoints', () => {
     expect(created.body.instance.name).toBe('srv');
   });
 
+  it('GET and POST /api/instances/:id/config/panel manages panel configuration for the instance', async () => {
+    const created = await request(server)
+      .post('/api/instances')
+      .set('Authorization', 'Bearer mock-jwt-token')
+      .send({ name: 'srv-config', branch: 'public', gamePort: 16261, rconPort: 27015, maxPlayers: 16 });
+
+    const getRes = await request(server)
+      .get(`/api/instances/${created.body.instance.id}/config/panel`)
+      .set('Authorization', 'Bearer mock-jwt-token');
+    expect(getRes.status).toBe(200);
+
+    const postRes = await request(server)
+      .post(`/api/instances/${created.body.instance.id}/config/panel`)
+      .set('Authorization', 'Bearer mock-jwt-token')
+      .send({ idleShutdownMinutes: 30, serverLanguage: 'en' });
+    expect(postRes.status).toBe(200);
+  });
+
   it('rejects unauthenticated requests with 401', async () => {
     const res = await request(server).get('/api/instances');
     expect(res.status).toBe(401);
