@@ -3,6 +3,7 @@ import { renderHook, act } from '@testing-library/react';
 import { useAuth } from '../hooks/useAuth.js';
 import { useServerStatus } from '../hooks/useServerStatus.js';
 import { useConfigManager } from '../hooks/useConfigManager.js';
+import { useBackups } from '../hooks/useBackups.js';
 import { ServerAction } from '../types.js';
 
 interface MockWs {
@@ -34,6 +35,21 @@ describe('Custom Hooks Unit Tests', () => {
             fetchedAt: 1,
             source: 'steam'
           }),
+          text: async () => ''
+        };
+      }
+      if (typeof url === 'string' && url.includes('/backups')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => {
+            if (url.endsWith('/backups')) {
+              return [
+                { id: 'backup-1', instanceId: 'inst-1', name: 'backup-1.zip', note: 'Pre-upgrade', sizeBytes: 1024, createdAt: 1000 }
+              ];
+            }
+            return { id: 'backup-2', instanceId: 'inst-1', name: 'backup-2.zip', note: 'New backup', sizeBytes: 2048, createdAt: 2000 };
+          },
           text: async () => ''
         };
       }
@@ -188,6 +204,42 @@ describe('Custom Hooks Unit Tests', () => {
     expect(result.current.branchesSource).toBe('steam');
   });
 
+  it('decrements remainingSeconds every second when idleShutdown is active', async () => {
+    vi.useFakeTimers();
+    const onExpired = vi.fn();
+    const { result } = renderHook(() => useServerStatus('mock-token', onExpired));
+
+    const instance = wsInstances[wsInstances.length - 1];
+    await act(async () => {
+      instance.onmessage?.({
+        data: JSON.stringify({
+          type: 'status_update',
+          data: {
+            status: 'RUNNING',
+            onlinePlayers: 0,
+            stats: { cpu: 5, memory: 500, memoryTotal: 8000 },
+            idleShutdown: { minutes: 10, active: true, remainingSeconds: 10 }
+          }
+        })
+      });
+    });
+
+    expect(result.current.status.idleShutdown.active).toBe(true);
+    expect(result.current.status.idleShutdown.remainingSeconds).toBe(10);
+
+    await act(async () => {
+      vi.advanceTimersByTime(1000);
+    });
+    expect(result.current.status.idleShutdown.remainingSeconds).toBe(9);
+
+    await act(async () => {
+      vi.advanceTimersByTime(5000);
+    });
+    expect(result.current.status.idleShutdown.remainingSeconds).toBe(4);
+
+    vi.useRealTimers();
+  });
+
   it('should test useConfigManager hook settings, mods and sandbox updates', async () => {
     const onExpired = vi.fn();
     const { result } = renderHook(() => useConfigManager('mock-token', onExpired));
@@ -214,5 +266,30 @@ describe('Custom Hooks Unit Tests', () => {
     });
 
     expect(result.current.modsList).toEqual([]);
+  });
+
+  it('should test useBackups hook fetch, create, restore and delete operations', async () => {
+    const { result } = renderHook(() => useBackups('mock-token', 'inst-1'));
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    expect(result.current.backups).toHaveLength(1);
+    expect(result.current.backups[0].id).toBe('backup-1');
+
+    await act(async () => {
+      await result.current.createBackup('Test note');
+    });
+    expect(result.current.error).toBeNull();
+
+    await act(async () => {
+      await result.current.restoreBackup('backup-1');
+    });
+    expect(result.current.error).toBeNull();
+
+    await act(async () => {
+      await result.current.deleteBackup('backup-1');
+    });
+    expect(result.current.error).toBeNull();
   });
 });

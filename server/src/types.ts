@@ -81,7 +81,9 @@ export interface ServerStats {
 /** Shape of idle-shutdown metadata exposed through getStatus(). */
 export interface IdleShutdownInfo {
   minutes: number;
+  active: boolean;
   expiresAt: number | null;
+  remainingSeconds: number;
   timeRemaining: number;
 }
 

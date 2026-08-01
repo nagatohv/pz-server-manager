@@ -7,6 +7,7 @@ import { ConsolePanel } from '../components/organisms/ConsolePanel.js';
 import { SettingsPanel } from '../components/organisms/SettingsPanel.js';
 import { ModsPanel } from '../components/organisms/ModsPanel.js';
 import { EditorPanel } from '../components/organisms/EditorPanel.js';
+import { BackupsPanel } from '../components/organisms/BackupsPanel.js';
 import { PortalPage } from '../components/pages/PortalPage.js';
 import { ServerStatus, EditorType, EditorMode } from '../types.js';
 
@@ -230,5 +231,37 @@ describe('Organisms Components Tests', () => {
     );
 
     expect(screen.getByText('Muldraugh')).toBeDefined();
+  });
+
+  it('should render BackupsPanel with backup items and trigger callbacks', () => {
+    const handleCreate = vi.fn();
+    const handleRestore = vi.fn();
+    const handleDelete = vi.fn();
+
+    const backups = [
+      { id: 'backup-1', instanceId: 'inst-1', name: 'backup-1.zip', note: 'Pre-upgrade note', sizeBytes: 1048576, createdAt: 1775656121000 }
+    ];
+
+    render(
+      <BackupsPanel
+        backups={backups}
+        loading={false}
+        error={null}
+        onRefresh={vi.fn()}
+        onCreate={handleCreate}
+        onRestore={handleRestore}
+        onDelete={handleDelete}
+      />
+    );
+
+    expect(screen.getByText('Pre-upgrade note')).toBeDefined();
+    expect(screen.getByText('backup-1')).toBeDefined();
+
+    const noteInput = screen.getByPlaceholderText(/ej: Respaldo previo/i);
+    fireEvent.change(noteInput, { target: { value: 'New Test Note' } });
+
+    const createBtn = screen.getByText('Crear Respaldo Ahora');
+    fireEvent.click(createBtn);
+    expect(handleCreate).toHaveBeenCalledWith('New Test Note');
   });
 });

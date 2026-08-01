@@ -56,7 +56,7 @@ export function useServerStatus(
     if (!t) return;
     try {
       const data = await ApiService.getStatus(t);
-      setStatus(data);
+      setStatus((prev) => ({ ...prev, ...data }));
     } catch (e: unknown) {
       if (e instanceof Error && isAuthError(e.message)) onSessionExpired();
     }
@@ -109,7 +109,7 @@ export function useServerStatus(
         } else if (msg.type === WsMessageType.LogsHistory) {
           setLogs(msg.data as string[]);
         } else if (msg.type === WsMessageType.StatusUpdate) {
-          setStatus(msg.data as ServerStatusPayload);
+          setStatus((prev) => ({ ...prev, ...msg.data }));
         } else if (msg.type === WsMessageType.BranchesUpdate) {
           const snapshot = msg.data as {
             branches: BranchInfo[];
@@ -142,6 +142,31 @@ export function useServerStatus(
       wsRef.current?.close();
     };
   }, [token, fetchStatus, fetchBranches, connectWebSocket]);
+
+  // Reloj en tiempo real para el apagado automático por inactividad
+  useEffect(() => {
+    let timer: NodeJS.Timeout | null = null;
+    if (status.idleShutdown?.active && status.idleShutdown.remainingSeconds > 0) {
+      timer = setInterval(() => {
+        setStatus((prev) => {
+          if (!prev.idleShutdown?.active || prev.idleShutdown.remainingSeconds <= 0) {
+            if (timer) clearInterval(timer);
+            return prev;
+          }
+          return {
+            ...prev,
+            idleShutdown: {
+              ...prev.idleShutdown,
+              remainingSeconds: prev.idleShutdown.remainingSeconds - 1
+            }
+          };
+        });
+      }, 1000);
+    }
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [status.idleShutdown?.active, status.idleShutdown?.remainingSeconds]);
 
   const executeAction = useCallback(
     async (action: ServerAction, branch?: string) => {

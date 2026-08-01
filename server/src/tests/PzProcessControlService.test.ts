@@ -100,6 +100,31 @@ describe('PzProcessControlService', () => {
     expect(result.error).toBeDefined();
   });
 
+  it('should start idle shutdown timer when server is running and empty, and report active shutdown status', () => {
+    service.setPanelConfig({ idleShutdownMinutes: 10, serverLanguage: 'es' });
+
+    (service as any).pzStatus = ServerStatus.Running;
+    (service as any).onlinePlayerCount = 0;
+    (service as any).checkIdleShutdown();
+
+    const status = service.getStatus();
+    expect(status.idleShutdown.active).toBe(true);
+    expect(status.idleShutdown.remainingSeconds).toBeGreaterThan(0);
+    expect(status.idleShutdown.remainingSeconds).toBeLessThanOrEqual(600);
+
+    service.updatePlayerCount(1);
+    const statusWithPlayer = service.getStatus();
+    expect(statusWithPlayer.idleShutdown.active).toBe(false);
+    expect(statusWithPlayer.idleShutdown.remainingSeconds).toBe(0);
+
+    service.updatePlayerCount(0);
+    const statusAfterDisconnect = service.getStatus();
+    expect(statusAfterDisconnect.idleShutdown.active).toBe(true);
+    expect(statusAfterDisconnect.idleShutdown.remainingSeconds).toBeGreaterThan(0);
+
+    (service as any).clearAllTimers();
+  });
+
   it('should handle updateGame failure if steamcmd is missing', () => {
     const result = service.updateGame('unstable');
     expect(result.error).toBeDefined();

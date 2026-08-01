@@ -1,11 +1,59 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import fs from 'fs';
 import fsp from 'fs/promises';
 import os from 'os';
 import path from 'path';
+import { EventEmitter } from 'events';
 import { PzBackupService } from '../adapters/services/PzBackupService.js';
 import { PzInstanceService } from '../adapters/services/PzInstanceService.js';
 import { PzInstanceRepository } from '../adapters/repositories/PzInstanceRepository.js';
+
+// Mock child_process.spawn natively to avoid dependency on OS zip/unzip tools in Vitest
+vi.mock('child_process', async (importOriginal) => {
+  const original = await importOriginal<typeof import('child_process')>();
+  return {
+    ...original,
+    spawn: vi.fn((cmd: string, args: string[], options?: any) => {
+      const emitter = new EventEmitter() as any;
+      emitter.stdout = new EventEmitter();
+      emitter.stderr = new EventEmitter();
+
+      setTimeout(() => {
+        // Zip Compression Mock
+        let destZip: string | null = null;
+        if (cmd === 'zip') {
+          destZip = args[1];
+        } else if (cmd === 'powershell' && args.join(' ').includes('Compress-Archive')) {
+          const match = args.join(' ').match(/-DestinationPath '([^']+)'/);
+          if (match) destZip = match[1];
+        }
+
+        if (destZip) {
+          fs.writeFileSync(destZip, 'dummy zip content', 'utf8');
+        }
+
+        // Zip Extraction Mock (Restore mock files)
+        let destPath: string | null = null;
+        if (cmd === 'unzip') {
+          destPath = args[3];
+        } else if (cmd === 'powershell' && args.join(' ').includes('Expand-Archive')) {
+          const match = args.join(' ').match(/-DestinationPath '([^']+)'/);
+          if (match) destPath = match[1];
+        }
+
+        if (destPath) {
+          const saveFile = path.join(destPath, 'Server', 'backupserv.ini');
+          fs.mkdirSync(path.dirname(saveFile), { recursive: true });
+          fs.writeFileSync(saveFile, 'Option=InitialValue', 'utf8');
+        }
+
+        emitter.emit('close', 0);
+      }, 5);
+
+      return emitter;
+    })
+  };
+});
 
 describe('PzBackupService', () => {
   let tmpDir: string;
@@ -30,7 +78,6 @@ describe('PzBackupService', () => {
       name: 'backupserv', branch: 'public', gamePort: 16261, rconPort: 27015, maxPlayers: 16
     });
 
-    // Create a dummy save file in dataPath
     const saveFile = path.join(instance.dataPath, 'Server', 'backupserv.ini');
     await fsp.mkdir(path.dirname(saveFile), { recursive: true });
     await fsp.writeFile(saveFile, 'Option=InitialValue', 'utf8');

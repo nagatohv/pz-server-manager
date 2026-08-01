@@ -279,7 +279,9 @@ class PzProcessControlService implements IServerControlService {
       onlinePlayers: this.onlinePlayerCount,
       idleShutdown: {
         minutes: this.idleShutdownMinutes,
+        active: this.idleShutdownTimer !== null,
         expiresAt: this.idleShutdownExpiresAt,
+        remainingSeconds: this.idleShutdownExpiresAt ? Math.max(0, Math.round((this.idleShutdownExpiresAt - Date.now()) / 1000)) : 0,
         timeRemaining: this.idleShutdownExpiresAt ? Math.max(0, Math.round((this.idleShutdownExpiresAt - Date.now()) / 1000)) : 0
       },
       config: {
@@ -424,6 +426,8 @@ class PzProcessControlService implements IServerControlService {
               this.lastCpuTicks = 0;
               this.lastCpuTime = Date.now();
               this.monitorInterval = setInterval(() => this.updateResourceStats(), SERVER_CONSTANTS.RESOURCE_MONITOR_INTERVAL_MS);
+
+              this.checkIdleShutdown();
             }
           }
         });
