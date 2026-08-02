@@ -1,0 +1,44 @@
+// ============================================================
+// StatusWidget.scss — Molecule: status/resource widget card
+// ============================================================
+@use '@/styles/tokens' as t;
+@use '@/styles/mixins' as m;
+
+.status-widget {
+  background: rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(12px);
+  border: 1px solid t.$border-color;
+  padding: 1.15rem 1.25rem;
+  border-radius: t.$radius-lg;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 100px;
+  gap: 0.4rem;
+  transition: t.$transition-smooth;
+
+  &:hover {
+    border-color: t.$border-hover;
+    transform: translateY(-2px);
+  }
+}
+
+.widget-title {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: t.$text-muted;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+.widget-val {
+  font-family: t.$font-header;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: t.$text-main;
+}
+
+.widget-desc {
+  font-size: 0.75rem;
+  color: t.$text-muted;
+}

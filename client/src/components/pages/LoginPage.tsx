@@ -1,5 +1,6 @@
 import React from 'react';
-import { LoginForm } from '../organisms/LoginForm.js';
+import { AuthLayout } from '../templates/index.js';
+import { LoginForm } from '../organisms/index.js';
 
 interface LoginPageProps {
   onLogin: (password: string) => Promise<void>;
@@ -7,8 +8,8 @@ interface LoginPageProps {
 
 export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
   return (
-    <div className="login-wrapper">
+    <AuthLayout>
       <LoginForm onLogin={onLogin} />
-    </div>
+    </AuthLayout>
   );
 };

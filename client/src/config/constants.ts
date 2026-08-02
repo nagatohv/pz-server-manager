@@ -97,6 +97,9 @@ export const PROGRESS_COLOR_HIGH = '#f43f5e';
 /** Color del widget de auto-apagado */
 export const IDLE_WIDGET_COLOR = '#fbbf24';
 
+/** Color del widget de jugadores conectados */
+export const PLAYERS_WIDGET_COLOR = '#38bdf8';
+
 /** Color del encabezado de categoría en SandboxVars */
 export const SANDBOX_CATEGORY_COLOR = '#38bdf8';
 
@@ -115,3 +118,11 @@ export const CLIENT_CONSTANTS = {
   API_CONFIG_PARSED,
   API_CONFIG_RAW
 };
+
+// =============================================================================
+// Games Catalog
+// =============================================================================
+
+/** ID único de Project Zomboid en el catálogo */
+export const GAME_ID_PROJECT_ZOMBOID = 'project-zomboid';
+

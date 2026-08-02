@@ -3,11 +3,13 @@ import { Button } from '../atoms/Button.js';
 import { Input } from '../atoms/Input.js';
 import { Select } from '../atoms/Select.js';
 import { CLIENT_STRINGS } from '../../config/strings.js';
+import { GAME_ID_PROJECT_ZOMBOID } from '../../config/constants.js';
 import { RefreshIcon } from '../atoms/Icon.js';
 import { ButtonVariant, type BranchInfo, type BranchCatalogSource, type BranchLoadState } from '../../types.js';
 
 export interface CreateInstancePayload {
   name: string;
+  game: string;
   branch: string;
   gamePort: number;
   rconPort: number;
@@ -26,6 +28,7 @@ interface CreateInstanceDialogProps {
 
 const DEFAULT_FORM = {
   name: '',
+  game: GAME_ID_PROJECT_ZOMBOID,
   branch: '',
   gamePort: 16261,
   rconPort: 27015,
@@ -62,16 +65,18 @@ export const CreateInstanceDialog: React.FC<CreateInstanceDialogProps> = ({
   const parsedBranchOptions = branches.map(formatBranchOption);
 
   const branchOptions = isBranchLoading
-    ? [{ value: '', label: '⏳ Consultando ramas desde Steam...' }]
+    ? [{ value: '', label: CLIENT_STRINGS.SERVERS_PAGE.CREATE_DIALOG.BRANCH_LOADING }]
     : hasBranchError
-    ? [{ value: '', label: '❌ Error al consultar ramas de Steam' }]
+    ? [{ value: '', label: CLIENT_STRINGS.SERVERS_PAGE.CREATE_DIALOG.BRANCH_ERROR }]
     : parsedBranchOptions;
 
   const branchDescription = isBranchLoading
-    ? '⏳ Conectando con SteamCMD para obtener la lista oficial de versiones...'
+    ? CLIENT_STRINGS.SERVERS_PAGE.CREATE_DIALOG.BRANCH_DESC_LOADING
     : hasBranchError
-    ? `⚠️ ${branchesError || 'No se pudo obtener la respuesta de Steam.'} Presiona "Reintentar" para volver a consultar.`
-    : `${branches.length} ${branches.length === 1 ? 'rama disponible' : 'ramas disponibles'} desde Steam`;
+    ? CLIENT_STRINGS.SERVERS_PAGE.CREATE_DIALOG.BRANCH_DESC_ERROR.replace('{error}', branchesError || CLIENT_STRINGS.SERVERS_PAGE.BRANCH_FALLBACK_HINT)
+    : branches.length === 1
+    ? CLIENT_STRINGS.SERVERS_PAGE.CREATE_DIALOG.BRANCH_COUNT_SINGLE
+    : CLIENT_STRINGS.SERVERS_PAGE.CREATE_DIALOG.BRANCH_COUNT_PLURAL.replace('{count}', String(branches.length));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,6 +105,24 @@ export const CreateInstanceDialog: React.FC<CreateInstanceDialogProps> = ({
         autoFocus
       />
 
+      <div className="form-group mb-3">
+        <label htmlFor="game" className="form-label instance-create-form__select-label">
+          {CLIENT_STRINGS.SERVERS_PAGE.CREATE_DIALOG.GAME_LABEL}
+        </label>
+        <select
+          id="game"
+          name="game"
+          value={form.game}
+          onChange={(e) => setForm({ ...form, game: e.target.value })}
+          className="form-control instance-create-form__select-input"
+        >
+          <option value={GAME_ID_PROJECT_ZOMBOID}>{CLIENT_STRINGS.SERVERS_PAGE.CREATE_DIALOG.PROJECT_ZOMBOID}</option>
+        </select>
+        <span className="instance-create-form__select-desc">
+          {CLIENT_STRINGS.SERVERS_PAGE.CREATE_DIALOG.GAME_DESC}
+        </span>
+      </div>
+
       <div className="form-group branch-select-group">
         <div className="branch-select-header">
           <label htmlFor="branch">{CLIENT_STRINGS.SERVERS_PAGE.BRANCH_LABEL}</label>
@@ -110,9 +133,9 @@ export const CreateInstanceDialog: React.FC<CreateInstanceDialogProps> = ({
               onClick={onRefreshBranches}
               disabled={isBranchLoading}
               className="btn-sm btn-retry-branches"
-              title="Reconsultar catálogo desde Steam"
+              title={CLIENT_STRINGS.SERVERS_PAGE.CREATE_DIALOG.RETRY_TITLE}
             >
-              <RefreshIcon /> Reintentar
+              <RefreshIcon /> {CLIENT_STRINGS.SERVERS_PAGE.CREATE_DIALOG.RETRY_BTN}
             </Button>
           )}
         </div>

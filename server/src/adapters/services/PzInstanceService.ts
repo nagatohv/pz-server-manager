@@ -123,6 +123,7 @@ export class PzInstanceService implements IPzInstanceService {
 
       const instance: PzInstance = {
         id,
+        game: input.game || 'project-zomboid',
         name: input.name,
         branch: input.branch,
         installed: false,
@@ -407,5 +408,71 @@ export class PzInstanceService implements IPzInstanceService {
         this.activeInstallProcesses.delete(id);
       });
     });
+  }
+
+  async cleanupInstance(id: string): Promise<{ filesRemoved: number; bytesFreed: number }> {
+    const instance = await this.repository.findById(id);
+    if (!instance) {
+      throw new Error(SERVER_STRINGS.ERR_INSTANCE_NOT_FOUND.replace('{id}', id));
+    }
+
+    let filesRemoved = 0;
+    let bytesFreed = 0;
+
+    const scanAndDelete = async (dir: string, isLogsDir = false) => {
+      if (!fs.existsSync(dir)) return;
+      let entries;
+      try {
+        entries = await fsp.readdir(dir, { withFileTypes: true });
+      } catch (_) {
+        return;
+      }
+
+      for (const entry of entries) {
+        const fullPath = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+          await scanAndDelete(fullPath, isLogsDir || entry.name.toLowerCase() === 'logs');
+        } else if (entry.isFile()) {
+          const name = entry.name.toLowerCase();
+          let shouldDelete = false;
+
+          if (name.startsWith(SERVER_CONSTANTS.CLEANUP_CORE_PREFIX)) {
+            shouldDelete = true;
+          }
+
+          if (isLogsDir && (name.endsWith('.log') || name.endsWith('.txt') || name.endsWith('.html'))) {
+            try {
+              const stat = await fsp.stat(fullPath);
+              const ageInDays = (Date.now() - stat.mtimeMs) / (1000 * 60 * 60 * 24);
+              if (ageInDays > SERVER_CONSTANTS.CLEANUP_LOG_MAX_AGE_DAYS) {
+                shouldDelete = true;
+              }
+            } catch (_) {
+            }
+          }
+
+          if (shouldDelete) {
+            try {
+              const stat = await fsp.stat(fullPath);
+              const size = stat.size;
+              await fsp.rm(fullPath, { force: true });
+              filesRemoved++;
+              bytesFreed += size;
+            } catch (_) {
+            }
+          }
+        }
+      }
+    };
+
+    if (instance.installPath) {
+      await scanAndDelete(instance.installPath);
+    }
+    if (instance.dataPath) {
+      await scanAndDelete(instance.dataPath);
+    }
+
+    this.log(`Limpieza completada para la instancia ${instance.name}. Se eliminaron ${filesRemoved} archivos liberando ${bytesFreed} bytes.`);
+    return { filesRemoved, bytesFreed };
   }
 }

@@ -37,16 +37,57 @@ export const BackupsPanel: React.FC<BackupsPanelProps> = ({
   const [creating, setCreating] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
 
+  const [progress, setProgress] = useState(0);
+  const [progressVisible, setProgressVisible] = useState(false);
+  const [progressTitle, setProgressTitle] = useState('');
+
+  const startProgressSimulation = (title: string): (() => void) => {
+    setProgressVisible(true);
+    setProgress(0);
+    setProgressTitle(title);
+
+    const interval = setInterval(() => {
+      setProgress((prev) => {
+        if (prev < 30) {
+          return prev + Math.floor(Math.random() * 5) + 3;
+        }
+        if (prev < 75) {
+          return prev + Math.floor(Math.random() * 3) + 1;
+        }
+        if (prev < 95) {
+          return prev + 0.5;
+        }
+        return prev;
+      });
+    }, 150);
+
+    return () => {
+      clearInterval(interval);
+    };
+  };
+
+  const endProgressSimulation = async () => {
+    setProgress(100);
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    setProgressVisible(false);
+    setProgress(0);
+  };
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (creating) return;
     setCreating(true);
     setFeedback(null);
+    const stopSim = startProgressSimulation('Generando Respaldo...');
     try {
       await onCreate(noteInput);
       setNoteInput('');
       setFeedback('Respaldo generado con éxito.');
+      stopSim();
+      await endProgressSimulation();
     } catch (err: unknown) {
+      stopSim();
+      setProgressVisible(false);
       setFeedback(err instanceof Error ? err.message : 'Error al crear el respaldo.');
     } finally {
       setCreating(false);
@@ -60,10 +101,15 @@ export const BackupsPanel: React.FC<BackupsPanelProps> = ({
       confirmText: CLIENT_STRINGS.BACKUPS.RESTORE_BTN,
       onConfirm: async () => {
         setFeedback(null);
+        const stopSim = startProgressSimulation('Restaurando Respaldo...');
         try {
           await onRestore(backup.id);
           setFeedback(`Respaldo "${backup.name}" restaurado con éxito.`);
+          stopSim();
+          await endProgressSimulation();
         } catch (err: unknown) {
+          stopSim();
+          setProgressVisible(false);
           setFeedback(err instanceof Error ? err.message : 'Error al restaurar respaldo.');
         }
       }
@@ -77,10 +123,15 @@ export const BackupsPanel: React.FC<BackupsPanelProps> = ({
       confirmText: CLIENT_STRINGS.BACKUPS.DELETE_BTN,
       onConfirm: async () => {
         setFeedback(null);
+        const stopSim = startProgressSimulation('Eliminando Respaldo...');
         try {
           await onDelete(backup.id);
           setFeedback(`Respaldo "${backup.name}" eliminado.`);
+          stopSim();
+          await endProgressSimulation();
         } catch (err: unknown) {
+          stopSim();
+          setProgressVisible(false);
           setFeedback(err instanceof Error ? err.message : 'Error al eliminar respaldo.');
         }
       }
@@ -110,6 +161,21 @@ export const BackupsPanel: React.FC<BackupsPanelProps> = ({
 
       {feedback && <div className="alert alert-info" role="status">{feedback}</div>}
       {error && <div className="alert alert-error" role="alert">{error}</div>}
+
+      {progressVisible && (
+        <div className="backup-progress-card">
+          <div className="backup-progress-card__header">
+            <span className="backup-progress-card__title">{progressTitle}</span>
+            <span className="backup-progress-card__percent">{Math.round(progress)}%</span>
+          </div>
+          <div className="backup-progress-card__track">
+            <div
+              className="backup-progress-card__fill"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+        </div>
+      )}
 
       <form className="backups-create-form" onSubmit={handleCreate}>
         <div className="form-row align-end">

@@ -1,3 +1,4 @@
+import './AlertModal.scss';
 import React from 'react';
 import { Button } from '../atoms/Button.js';
 import { ButtonVariant } from '../../types.js';

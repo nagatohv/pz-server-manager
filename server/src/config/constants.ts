@@ -133,6 +133,7 @@ export const SERVER_CONSTANTS = {
     INSTANCE_SELECT: '/api/instances/:id/select',
     INSTANCE_INSTALL: '/api/instances/:id/install',
     INSTANCE_MIGRATE: '/api/instances/:id/migrate',
+    INSTANCE_CLEANUP: '/api/instances/:id/cleanup',
     SETTINGS: '/api/config/settings',
     PANEL: '/api/config/panel',
     RAW: '/api/config/raw/:type',
@@ -146,5 +147,9 @@ export const SERVER_CONSTANTS = {
     UNAUTHORIZED: 401,
     FORBIDDEN: 403,
     INTERNAL_SERVER_ERROR: 500
-  }
+  },
+
+  // Utilidad de Limpieza de Espacio
+  CLEANUP_LOG_MAX_AGE_DAYS: 3,
+  CLEANUP_CORE_PREFIX: 'core.'
 };

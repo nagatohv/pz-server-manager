@@ -12,6 +12,7 @@ import SpawnParserStrategy from './src/adapters/parsers/SpawnParserStrategy.js';
 import PzConfigRepository from './src/adapters/repositories/PzConfigRepository.js';
 import { PzInstanceRepository } from './src/adapters/repositories/PzInstanceRepository.js';
 import { getProcessControlService } from './src/adapters/services/PzProcessControlService.js';
+import { MultiGameProcessControlService } from './src/adapters/services/MultiGameProcessControlService.js';
 import { getSteamBranchCatalogService } from './src/adapters/services/SteamBranchCatalogService.js';
 import { PzInstanceService } from './src/adapters/services/PzInstanceService.js';
 import { PzBackupService } from './src/adapters/services/PzBackupService.js';
@@ -40,7 +41,13 @@ const configRepository = new PzConfigRepository(
   sandboxStrategy,
   spawnStrategy
 );
-const serverControlService = getProcessControlService(systemConfig, configRepository);
+const pzProcessControlService = getProcessControlService(systemConfig, configRepository);
+const serverControlService = new MultiGameProcessControlService(
+  systemConfig.DATA_DIR,
+  {
+    'project-zomboid': pzProcessControlService
+  }
+);
 const branchClassifier = new BranchClassifier({
   defaultBranchNames: SERVER_CONSTANTS.STEAM_DEFAULT_BRANCHES,
   unstableKeywords: SERVER_CONSTANTS.STEAM_UNSTABLE_KEYWORDS

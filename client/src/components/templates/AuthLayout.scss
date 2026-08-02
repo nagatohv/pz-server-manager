@@ -1,0 +1,17 @@
+// ============================================================
+// AuthLayout.scss — Template: layout for authentication pages
+// ============================================================
+@use '@/styles/tokens' as t;
+
+.auth-layout {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+
+  &__card {
+    width: 100%;
+    max-width: 420px;
+  }
+}

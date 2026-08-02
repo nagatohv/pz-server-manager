@@ -8,6 +8,7 @@ import { GuiCard } from '../components/molecules/GuiCard.js';
 import { ModCard } from '../components/molecules/ModCard.js';
 import { AlertModal } from '../components/molecules/AlertModal.js';
 import { ServerStatus, PortalTab } from '../types.js';
+import { PLAYERS_WIDGET_COLOR } from '../config/constants.js';
 
 const noop = () => undefined;
 
@@ -17,7 +18,7 @@ describe('Molecules Components Tests', () => {
       <div>
         <StatusWidget title="Status" badge={{ status: ServerStatus.Running, label: 'ONLINE' }} />
         <StatusWidget title="CPU" value="45%" progress={45} />
-        <StatusWidget title="Players" value={5} subtitle="Connected players" color="#38bdf8" />
+        <StatusWidget title="Players" value={5} subtitle="Connected players" color={PLAYERS_WIDGET_COLOR} />
       </div>
     );
     expect(screen.getByText('Status')).toBeDefined();
@@ -97,6 +98,7 @@ describe('Molecules Components Tests', () => {
         instances={[
           {
             id: 'inst-1',
+            game: 'project-zomboid',
             name: 'servertest',
             branch: '',
             installed: true,

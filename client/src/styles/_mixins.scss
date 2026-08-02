@@ -1,0 +1,100 @@
+// ============================================================
+// _mixins.scss — Reusable SASS mixins for design patterns
+// ============================================================
+@use 'tokens' as t;
+
+// Tarjeta glassmorphism
+@mixin glass-card($blur: 12px) {
+  background: t.$bg-card;
+  backdrop-filter: blur($blur);
+  border: 1px solid t.$border-color;
+  border-radius: t.$radius-xl;
+}
+
+// Tarjeta glassmorphism con hover
+@mixin glass-card-interactive {
+  @include glass-card;
+  transition: t.$transition-smooth;
+
+  &:hover {
+    border-color: t.$border-hover;
+    transform: translateY(-1px);
+  }
+}
+
+// Badge de estado con color semántico
+@mixin status-badge($bg-alpha: 0.15, $border-alpha: 0.35) {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  font-family: t.$font-header;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border: 1px solid transparent;
+}
+
+// Progress bar track
+@mixin progress-track {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+// Scrollbar custom
+@mixin custom-scrollbar($width: 4px) {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+
+  &::-webkit-scrollbar {
+    width: $width;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 999px;
+  }
+}
+
+// Texto truncado con ellipsis
+@mixin text-truncate {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+// Centering flexbox
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+// Flex row con gap
+@mixin flex-row($gap: 0.75rem) {
+  display: flex;
+  align-items: center;
+  gap: $gap;
+}
+
+// Responsive breakpoint (mobile-first)
+@mixin mobile {
+  @media (max-width: 600px) {
+    @content;
+  }
+}
+
+@mixin tablet {
+  @media (max-width: 900px) {
+    @content;
+  }
+}

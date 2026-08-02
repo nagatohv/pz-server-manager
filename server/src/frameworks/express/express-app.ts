@@ -269,6 +269,16 @@ export default function createExpressApp(
     }
   });
 
+  app.post(SERVER_CONSTANTS.ROUTES.INSTANCE_CLEANUP, authenticate, async (req: Request, res: Response) => {
+    try {
+      const result = await instanceService.cleanupInstance(req.params.id);
+      return res.json(result);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      return res.status(SERVER_CONSTANTS.HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ error: message });
+    }
+  });
+
   // Helper to resolve custom data path for a specific instance
   const resolveInstanceDataDir = async (instanceId: string): Promise<string | undefined> => {
     if (!instanceId || instanceId === 'active') return undefined;

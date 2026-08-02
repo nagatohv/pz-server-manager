@@ -1,3 +1,4 @@
+import './StatusWidget.scss';
 import React from 'react';
 import { Badge } from '../atoms/Badge.js';
 import { ProgressBar } from '../atoms/ProgressBar.js';

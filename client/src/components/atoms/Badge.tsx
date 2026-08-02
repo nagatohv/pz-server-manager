@@ -1,4 +1,5 @@
 import React from 'react';
+import './Badge.scss';
 
 interface BadgeProps {
   status: string;

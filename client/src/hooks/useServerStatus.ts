@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { ApiService } from '../services/apiService.js';
+import { ENV } from '../config/env.js';
 import {
   BranchInfo,
   BranchCatalogSource,
@@ -29,6 +30,10 @@ const isAuthError = (message: string): boolean =>
   message.includes('expirada') || message.includes('autorizada');
 
 const buildWebSocketUrl = (token: string): string => {
+  if (ENV.WS_URL) {
+    const separator = ENV.WS_URL.includes('?') ? '&' : '?';
+    return `${ENV.WS_URL}${separator}token=${token}`;
+  }
   const protocol = window.location.protocol === HTTPS_PROTOCOL ? WS_PROTOCOL_SECURE : WS_PROTOCOL_PLAIN;
   return `${protocol}//${window.location.host}${WS_PATH}?token=${token}`;
 };

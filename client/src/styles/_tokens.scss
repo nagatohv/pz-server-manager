@@ -1,0 +1,100 @@
+// ============================================================
+// _tokens.scss — Design Tokens: variables SASS + custom props
+// ============================================================
+
+// SASS variables para uso en tiempo de compilación
+$bg-main:          #0a0c10;
+$bg-card:          rgba(18, 22, 33, 0.75);
+$bg-card-hover:    rgba(26, 32, 48, 0.85);
+$border-color:     rgba(255, 255, 255, 0.07);
+$border-hover:     rgba(0, 242, 254, 0.3);
+
+$primary:          #00f2fe;
+$primary-hover:    #00c6d4;
+$secondary:        #7f5af0;
+$accent:           #ff007f;
+$text-main:        #f1f5f9;
+$text-muted:       #94a3b8;
+$text-dark:        #0f172a;
+
+$color-cyan:         #38bdf8;
+$color-purple:       #c084fc;
+$color-purple-light: #a78bfa;
+$color-amber:        #fbbf24;
+$color-danger-light: #f87171;
+$color-muted-badge:  #94a3b8;
+$color-violet:       #8b5cf6;
+
+$radius-sm: 6px;
+$radius-md: 8px;
+$radius-lg: 12px;
+$radius-xl: 16px;
+
+$state-stopped:  #64748b;
+$state-starting: #f59e0b;
+$state-running:  #10b981;
+$state-updating: #8b5cf6;
+$state-crashed:  #ef4444;
+
+$font-header: 'Outfit', sans-serif;
+$font-body:   'Inter', sans-serif;
+$font-mono:   'Fira Code', monospace;
+
+$shadow-glow:       0 0 20px rgba(0, 242, 254, 0.15);
+$shadow-glow-green: 0 0 20px rgba(16, 185, 129, 0.25);
+$shadow-glow-red:   0 0 20px rgba(239, 68, 68, 0.25);
+$transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+// Estado → color map para generación automática de clases
+$state-colors: (
+  'running':  $state-running,
+  'stopped':  $state-stopped,
+  'starting': $state-starting,
+  'updating': $state-updating,
+  'crashed':  $state-crashed,
+);
+
+// Exposición como CSS custom properties (runtime theming)
+:root {
+  --bg-main:           #{$bg-main};
+  --bg-card:           #{$bg-card};
+  --bg-card-hover:     #{$bg-card-hover};
+  --border-color:      #{$border-color};
+  --border-hover:      #{$border-hover};
+
+  --primary:           #{$primary};
+  --primary-hover:     #{$primary-hover};
+  --secondary:         #{$secondary};
+  --accent:            #{$accent};
+  --text-main:         #{$text-main};
+  --text-muted:        #{$text-muted};
+  --text-dark:         #{$text-dark};
+
+  --color-cyan:         #{$color-cyan};
+  --color-purple:       #{$color-purple};
+  --color-purple-light: #{$color-purple-light};
+  --color-amber:        #{$color-amber};
+  --color-danger-light: #{$color-danger-light};
+  --color-muted-badge:  #{$color-muted-badge};
+  --color-violet:       #{$color-violet};
+
+  --border-radius-sm: #{$radius-sm};
+  --border-radius-md: #{$radius-md};
+  --border-radius-lg: #{$radius-lg};
+  --border-radius-xl: #{$radius-xl};
+
+  --state-stopped:  #{$state-stopped};
+  --state-starting: #{$state-starting};
+  --state-running:  #{$state-running};
+  --state-updating: #{$state-updating};
+  --state-crashed:  #{$state-crashed};
+
+  --font-header: #{$font-header};
+  --font-body:   #{$font-body};
+  --font-mono:   #{$font-mono};
+
+  --shadow-glow:        #{$shadow-glow};
+  --shadow-glow-green:  #{$shadow-glow-green};
+  --shadow-glow-red:    #{$shadow-glow-red};
+  --transition-smooth:  #{$transition-smooth};
+}

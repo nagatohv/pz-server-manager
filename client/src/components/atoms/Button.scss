@@ -1,0 +1,121 @@
+// ============================================================
+// Button.scss — Atom: Button styles
+// ============================================================
+@use '@/styles/tokens' as t;
+@use '@/styles/mixins' as m;
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.2rem;
+  border: 1px solid transparent;
+  border-radius: t.$radius-md;
+  font-family: t.$font-header;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: t.$transition-smooth;
+  white-space: nowrap;
+
+  svg {
+    width: 1rem;
+    height: 1rem;
+    flex-shrink: 0;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  // Variants
+  &--primary {
+    background: linear-gradient(135deg, t.$primary, t.$primary-hover);
+    color: t.$text-dark;
+    box-shadow: 0 0 15px rgba(0, 242, 254, 0.25);
+
+    &:hover:not(:disabled) {
+      box-shadow: 0 0 25px rgba(0, 242, 254, 0.4);
+      transform: translateY(-1px);
+    }
+  }
+
+  &--danger {
+    background: rgba(239, 68, 68, 0.12);
+    color: t.$state-crashed;
+    border-color: rgba(239, 68, 68, 0.3);
+
+    &:hover:not(:disabled) {
+      background: rgba(239, 68, 68, 0.22);
+      box-shadow: t.$shadow-glow-red;
+    }
+  }
+
+  &--success {
+    background: rgba(16, 185, 129, 0.12);
+    color: t.$state-running;
+    border-color: rgba(16, 185, 129, 0.3);
+
+    &:hover:not(:disabled) {
+      background: rgba(16, 185, 129, 0.22);
+      box-shadow: t.$shadow-glow-green;
+    }
+  }
+
+  &--warning {
+    background: rgba(245, 158, 11, 0.12);
+    color: t.$state-starting;
+    border-color: rgba(245, 158, 11, 0.3);
+
+    &:hover:not(:disabled) {
+      background: rgba(245, 158, 11, 0.22);
+    }
+  }
+
+  &--control {
+    background: rgba(255, 255, 255, 0.05);
+    color: t.$text-muted;
+    border-color: t.$border-color;
+
+    &:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.1);
+      color: t.$text-main;
+    }
+  }
+
+  &--nav {
+    background: transparent;
+    border: none;
+    color: t.$text-muted;
+    font-family: t.$font-header;
+    font-size: 0.95rem;
+    padding: 0.75rem 1.25rem;
+    border-radius: t.$radius-md;
+
+    &:hover:not(:disabled) {
+      color: t.$text-main;
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    &.active {
+      color: t.$primary;
+      background: rgba(0, 242, 254, 0.08);
+      border: 1px solid rgba(0, 242, 254, 0.2);
+      box-shadow: 0 0 15px rgba(0, 242, 254, 0.1);
+    }
+  }
+
+  &--logout {
+    background: transparent;
+    color: t.$text-muted;
+    border-color: t.$border-color;
+
+    &:hover:not(:disabled) {
+      color: t.$state-crashed;
+      border-color: rgba(239, 68, 68, 0.4);
+      background: rgba(239, 68, 68, 0.08);
+    }
+  }
+}

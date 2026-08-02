@@ -1,16 +1,19 @@
+import './InstanceCard.scss';
 import React from 'react';
 import { Button } from '../atoms/Button.js';
 import { Badge } from '../atoms/Badge.js';
 import { PlayIcon, PowerIcon, TrashIcon, SwapIcon, UpdateIcon, SettingsIcon } from '../atoms/Icon.js';
 import { CLIENT_STRINGS } from '../../config/strings.js';
-import { ButtonVariant, ServerStatus, type PzInstance } from '../../types.js';
+import { GAME_ID_PROJECT_ZOMBOID } from '../../config/constants.js';
+import { ButtonVariant, ServerStatus, type PzInstance, type ServerStatusPayload } from '../../types.js';
 
 interface InstanceCardProps {
   instance: PzInstance;
   isActive: boolean;
   activeStatus: ServerStatus;
+  activeServerStatus?: ServerStatusPayload;
   loading: boolean;
-  onSelect: (id: string) => void;
+  onSelect: (id: string) => void | Promise<unknown>;
   onInstall: (id: string) => void;
   onStart: () => void;
   onStop: () => void;
@@ -22,29 +25,33 @@ interface InstanceCardProps {
 const formatBranch = (branch: string): string =>
   branch === '' ? CLIENT_STRINGS.SERVERS_PAGE.BRANCH_PUBLIC_DEFAULT : branch;
 
+const STATUS_CLASS_MAP: Record<ServerStatus, string> = {
+  [ServerStatus.Stopped]: 'stopped',
+  [ServerStatus.Starting]: 'starting',
+  [ServerStatus.Running]: 'running',
+  [ServerStatus.Stopping]: 'stopping',
+  [ServerStatus.Updating]: 'updating',
+  [ServerStatus.Crashed]: 'crashed'
+};
+
 const getStatusBadge = (isActive: boolean, activeStatus: ServerStatus): { status: string; label: string } => {
-  if (!isActive) return { status: 'stopped', label: 'DETENIDO' };
-  switch (activeStatus) {
-    case ServerStatus.Running:
-      return { status: 'running', label: 'EJECUTÁNDOSE' };
-    case ServerStatus.Starting:
-      return { status: 'starting', label: 'INICIANDO' };
-    case ServerStatus.Stopping:
-      return { status: 'stopping', label: 'DETENIENDO' };
-    case ServerStatus.Updating:
-      return { status: 'updating', label: 'ACTUALIZANDO' };
-    case ServerStatus.Crashed:
-      return { status: 'crashed', label: 'ERROR' };
-    case ServerStatus.Stopped:
-    default:
-      return { status: 'stopped', label: 'DETENIDO' };
+  if (!isActive) {
+    return {
+      status: STATUS_CLASS_MAP[ServerStatus.Stopped],
+      label: CLIENT_STRINGS.STATUS.STOPPED
+    };
   }
+  return {
+    status: STATUS_CLASS_MAP[activeStatus] || STATUS_CLASS_MAP[ServerStatus.Stopped],
+    label: CLIENT_STRINGS.STATUS[activeStatus] || CLIENT_STRINGS.STATUS.STOPPED
+  };
 };
 
 export const InstanceCard: React.FC<InstanceCardProps> = ({
   instance,
   isActive,
   activeStatus,
+  activeServerStatus,
   loading,
   onSelect,
   onInstall,
@@ -78,9 +85,15 @@ export const InstanceCard: React.FC<InstanceCardProps> = ({
       <header className="instance-card__header">
         <h3 className="instance-card__name">{instance.name}</h3>
         <div className="instance-card__badges">
+          <Badge
+            status="game"
+            label={instance.game === GAME_ID_PROJECT_ZOMBOID || !instance.game
+              ? CLIENT_STRINGS.SERVERS_PAGE.CREATE_DIALOG.PROJECT_ZOMBOID
+              : instance.game}
+          />
           <Badge status={statusBadge.status} label={statusBadge.label} />
           <Badge
-            status={instance.installed ? 'instalado' : 'stopped'}
+            status={instance.installed ? 'instalado' : STATUS_CLASS_MAP[ServerStatus.Stopped]}
             label={instance.installed
               ? CLIENT_STRINGS.SERVERS_PAGE.INSTALLED_BADGE
               : CLIENT_STRINGS.SERVERS_PAGE.NOT_INSTALLED_BADGE}
@@ -105,6 +118,29 @@ export const InstanceCard: React.FC<InstanceCardProps> = ({
         )}
       </dl>
 
+      {isActive && activeRunning && activeServerStatus && (
+        <div className="instance-card__stats">
+          <div className="instance-card__stat-item">
+            <span className="instance-card__stat-label">{CLIENT_STRINGS.STATUS_WIDGETS.ONLINE_PLAYERS_TITLE}: </span>
+            <strong className="instance-card__stat-value instance-card__stat-value--players">
+              {activeServerStatus.onlinePlayers ?? 0} / {instance.maxPlayers}
+            </strong>
+          </div>
+          <div className="instance-card__stat-item">
+            <span className="instance-card__stat-label">{CLIENT_STRINGS.STATUS_WIDGETS.CPU_USAGE_TITLE}: </span>
+            <strong className="instance-card__stat-value instance-card__stat-value--cpu">
+              {activeServerStatus.stats?.cpu ?? 0}%
+            </strong>
+          </div>
+          <div className="instance-card__stat-item instance-card__stat-item--span-2">
+            <span className="instance-card__stat-label">{CLIENT_STRINGS.STATUS_WIDGETS.MEMORY_USAGE_TITLE}: </span>
+            <strong className="instance-card__stat-value instance-card__stat-value--memory">
+              {activeServerStatus.stats?.memory ?? 0} MB
+            </strong>
+          </div>
+        </div>
+      )}
+
       <footer className="instance-card__actions">
         {isActive && activeRunning ? (
           <Button
@@ -113,7 +149,7 @@ export const InstanceCard: React.FC<InstanceCardProps> = ({
             disabled={loading}
             data-action="stop-instance"
           >
-            <PowerIcon /> Detener Servidor
+            <PowerIcon /> {CLIENT_STRINGS.SERVERS_PAGE.STOP_BTN}
           </Button>
         ) : (
           <Button
@@ -140,7 +176,7 @@ export const InstanceCard: React.FC<InstanceCardProps> = ({
           disabled={loading}
           data-action="configure"
         >
-          <SettingsIcon /> Configuración
+          <SettingsIcon /> {CLIENT_STRINGS.SERVERS_PAGE.CONFIGURE_BTN}
         </Button>
         <Button
           variant={ButtonVariant.Control}

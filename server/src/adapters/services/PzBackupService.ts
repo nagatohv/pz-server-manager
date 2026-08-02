@@ -26,8 +26,7 @@ const extractZip = (zipPath: string, destPath: string): Promise<void> => {
         `Expand-Archive -Path '${zipPath.replace(/'/g, "''")}' -DestinationPath '${destPath.replace(/'/g, "''")}' -Force`
       ]);
     } else {
-      // Linux/macOS
-      child = spawn('unzip', ['-o', zipPath, '-d', destPath]);
+      child = spawn('unzip', ['-oq', zipPath, '-d', destPath]);
     }
 
     let stderr = '';
@@ -60,8 +59,7 @@ const createZip = (zipPath: string, sourcePath: string): Promise<void> => {
         `Get-ChildItem -Path '${sourcePath.replace(/'/g, "''")}' -Exclude 'backups' | Compress-Archive -DestinationPath '${zipPath.replace(/'/g, "''")}' -Force`
       ]);
     } else {
-      // Linux/macOS
-      child = spawn('zip', ['-r', zipPath, '.', '-x', 'backups/*'], {
+      child = spawn('zip', ['-rq', zipPath, '.', '-x', 'backups/*'], {
         cwd: sourcePath
       });
     }
@@ -108,7 +106,7 @@ export class PzBackupService implements IPzBackupService {
   }
 
   private getBackupsDir(dataPath: string): string {
-    return path.join(dataPath, 'backups');
+    return path.join(dataPath, 'backups', 'startup');
   }
 
   async listBackups(instanceId: string): Promise<PzBackup[]> {
@@ -139,7 +137,6 @@ export class PzBackupService implements IPzBackupService {
               const meta = JSON.parse(metaRaw) as { note?: string };
               note = meta.note || null;
             } catch (_) {
-              // Ignore invalid companion JSON files
             }
           }
 
@@ -152,7 +149,6 @@ export class PzBackupService implements IPzBackupService {
             note
           });
         } catch (_) {
-          // Ignore stats errors on unreadable files
         }
       }
     }

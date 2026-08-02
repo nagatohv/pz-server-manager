@@ -167,6 +167,8 @@ export interface BranchInfo {
 export interface PzInstance {
   /** Stable opaque identifier (uuid v4). */
   id: string;
+  /** Game type (e.g. 'project-zomboid'). */
+  game: string;
   /** Operator-facing name (must be unique). */
   name: string;
   /** Steam branch currently installed ('' for default public, or e.g. 'b42stable', 'unstable'). */

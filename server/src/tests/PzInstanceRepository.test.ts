@@ -8,6 +8,7 @@ import type { PzInstance } from '../types.js';
 
 const buildInstance = (overrides: Partial<PzInstance> = {}): PzInstance => ({
   id: 'inst-1',
+  game: 'project-zomboid',
   name: 'servertest',
   branch: '',
   installed: false,

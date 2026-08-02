@@ -144,6 +144,7 @@ export type InstanceStatus = 'STOPPED' | 'STARTING' | 'RUNNING' | 'STOPPING' | '
 /** Instancia de servidor PZ administrada por el portal. */
 export interface PzInstance {
   id: string;
+  game: string;
   name: string;
   branch: string;
   installed: boolean;

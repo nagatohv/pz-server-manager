@@ -40,6 +40,28 @@ export const CLIENT_STRINGS = {
     CANCEL_BTN: 'Cancelar'
   },
 
+  STATUS: {
+    STOPPED: 'DETENIDO',
+    RUNNING: 'EJECUTÁNDOSE',
+    STARTING: 'INICIANDO',
+    STOPPING: 'DETENIENDO',
+    UPDATING: 'ACTUALIZANDO',
+    CRASHED: 'ERROR'
+  },
+
+  CLEANUP: {
+    BTN_CLEANUP: 'Liberar Espacio',
+    BTN_CLEANING: 'Limpiando...',
+    BTN_TITLE: 'Eliminar archivos temporales, logs antiguos y core dumps',
+    CONFIRM_TITLE: 'Liberar espacio en disco',
+    CONFIRM_MSG: '¿Estás seguro de que deseas liberar espacio en el disco? Se eliminarán volcados de memoria (core.*) y logs de más de 3 días de antigüedad. Tus partidas y archivos de configuración no se verán afectados.',
+    CONFIRM_BTN: 'Liberar',
+    SUCCESS_TITLE: 'Limpieza completada',
+    SUCCESS_MSG: 'Se ha liberado {space} de espacio en disco (se eliminaron {count} archivos residuales).',
+    ERROR_TITLE: 'Error de limpieza',
+    ERROR_DEFAULT: 'Error al liberar espacio'
+  },
+
   SERVERS_PAGE: {
     TITLE: 'Servidores de Project Zomboid',
     SUBTITLE: 'Crea distintos servidores con diferentes versiones, configura sus puertos y migra datos entre ellos.',
@@ -59,6 +81,8 @@ export const CLIENT_STRINGS = {
     SELECT_BTN: 'Activar',
     INSTALL_BTN: 'Instalar / Actualizar',
     START_BTN: 'Iniciar Servidor',
+    STOP_BTN: 'Detener Servidor',
+    CONFIGURE_BTN: 'Configuración',
     UPDATE_BTN: 'Actualizar',
     DELETE_BTN: 'Eliminar',
     MIGRATE_BTN: 'Migrar datos…',
@@ -74,7 +98,20 @@ export const CLIENT_STRINGS = {
     MIGRATE_TARGET_LABEL: 'Instancia destino',
     MIGRATE_BTN_CONFIRM: 'Migrar datos',
     MIGRATE_SUCCESS: 'Migración completada: {files} archivo(s), {bytes} bytes copiados.',
-    MIGRATE_CONFIRM_TITLE: 'Migrar a "{name}"'
+    MIGRATE_CONFIRM_TITLE: 'Migrar a "{name}"',
+    CREATE_DIALOG: {
+      GAME_LABEL: 'Juego / Servidor',
+      GAME_DESC: 'Elige el servidor de juego a desplegar. En el futuro se admitirán más opciones.',
+      PROJECT_ZOMBOID: 'Project Zomboid',
+      BRANCH_LOADING: '⏳ Consultando ramas desde Steam...',
+      BRANCH_ERROR: '❌ Error al consultar ramas de Steam',
+      BRANCH_DESC_LOADING: '⏳ Conectando con SteamCMD para obtener la lista oficial de versiones...',
+      BRANCH_DESC_ERROR: '⚠️ {error} Presiona "Reintentar" para volver a consultar.',
+      BRANCH_COUNT_SINGLE: '1 rama disponible desde Steam',
+      BRANCH_COUNT_PLURAL: '{count} ramas disponibles desde Steam',
+      RETRY_BTN: 'Reintentar',
+      RETRY_TITLE: 'Reconsultar catálogo desde Steam'
+    }
   },
 
   NAV_TABS: {

@@ -1,3 +1,4 @@
+import './Button.scss';
 import React, { ButtonHTMLAttributes } from 'react';
 import { ButtonVariant } from '../../types.js';
 

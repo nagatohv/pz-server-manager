@@ -14,8 +14,12 @@ import {
   AuthResponse, BranchInfo, BranchCatalogSource, InstanceRegistry, PzInstance, ServerStatusPayload, IniSettingItem, PanelConfig, PzBackup
 } from '../types.js';
 
+import { ENV } from '../config/env.js';
+
 const CONTENT_TYPE_JSON = 'application/json';
 const CONTENT_TYPE_TEXT = 'text/plain';
+
+const getUrl = (endpoint: string) => `${ENV.API_BASE}${endpoint}`;
 
 const buildAuthHeaders = (token: string): Record<string, string> => ({
   Authorization: `Bearer ${token}`
@@ -43,7 +47,7 @@ const parseJsonResponse = async <T>(res: Response): Promise<T> => {
 
 export class ApiService {
   static async login(password: string): Promise<AuthResponse> {
-    const res = await fetch(API_AUTH_LOGIN, {
+    const res = await fetch(getUrl(API_AUTH_LOGIN), {
       method: 'POST',
       headers: buildJsonHeaders(),
       body: JSON.stringify({ password })
@@ -167,6 +171,10 @@ export class ApiService {
 
   static async deleteInstance(token: string, id: string): Promise<{ success: boolean }> {
     return this.deleteJson(`${API_INSTANCES}/${encodeURIComponent(id)}`, token);
+  }
+
+  static async cleanupInstance(token: string, id: string): Promise<{ filesRemoved: number; bytesFreed: number }> {
+    return this.postJson(`${API_INSTANCES}/${encodeURIComponent(id)}/cleanup`, token, {});
   }
 
   static async migrateInstance(token: string, targetId: string, sourceId: string): Promise<{

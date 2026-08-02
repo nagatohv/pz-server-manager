@@ -4,7 +4,7 @@ import { Select } from '../atoms/Select.js';
 import { InstanceCard } from '../molecules/InstanceCard.js';
 import { CreateInstanceDialog, type CreateInstancePayload } from '../organisms/CreateInstanceDialog.js';
 import { CLIENT_STRINGS } from '../../config/strings.js';
-import { ButtonVariant, type BranchInfo, type BranchLoadState, type PzInstance, ServerStatus } from '../../types.js';
+import { ButtonVariant, type BranchInfo, type BranchLoadState, type PzInstance, ServerStatus, type ServerStatusPayload } from '../../types.js';
 
 import { AlertModal } from '../molecules/AlertModal.js';
 import { useModal } from '../../hooks/useModal.js';
@@ -28,7 +28,7 @@ interface ServersPageProps {
   branchesState?: BranchLoadState;
   branchesError?: string | null;
   onRefreshBranches?: () => void;
-  activeStatus: ServerStatus;
+  activeServerStatus: ServerStatusPayload;
   onStart: () => void;
   onStop: () => void;
   onConfigure?: (id: string) => void;
@@ -56,7 +56,7 @@ const formatBytes = (bytes: number): string => {
   return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
 };
 
-export const ServersPage: React.FC<ServersPageProps> = ({ harness, branches, branchesSource, branchesState, branchesError, onRefreshBranches, activeStatus, onStart, onStop, onConfigure }) => {
+export const ServersPage: React.FC<ServersPageProps> = ({ harness, branches, branchesSource, branchesState, branchesError, onRefreshBranches, activeServerStatus, onStart, onStop, onConfigure }) => {
   const { registry, loading, error } = harness;
   const modal = useModal();
   const [createOpen, setCreateOpen] = useState(false);
@@ -157,7 +157,8 @@ export const ServersPage: React.FC<ServersPageProps> = ({ harness, branches, bra
               key={instance.id}
               instance={instance}
               isActive={registry.activeInstanceId === instance.id}
-              activeStatus={activeStatus}
+              activeStatus={activeServerStatus.status}
+              activeServerStatus={activeServerStatus}
               loading={loading}
               onSelect={handleSelect}
               onInstall={handleInstall}

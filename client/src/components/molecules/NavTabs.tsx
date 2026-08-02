@@ -1,3 +1,4 @@
+import './NavTabs.scss';
 import React from 'react';
 import { Button } from '../atoms/Button.js';
 import { TerminalIcon, SettingsIcon, PuzzleIcon, FileIcon } from '../atoms/Icon.js';

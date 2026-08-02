@@ -1,0 +1,32 @@
+// ============================================================
+// Select.scss — Atom: select/dropdown styles
+// ============================================================
+@use '@/styles/tokens' as t;
+
+select.form-control {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid t.$border-color;
+  border-radius: t.$radius-md;
+  color: t.$text-main;
+  padding: 0.6rem 0.9rem;
+  font-family: t.$font-body;
+  font-size: 0.9rem;
+  width: 100%;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2394a3b8' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  padding-right: 2.5rem;
+  transition: border-color 0.18s ease;
+
+  option {
+    background: #0d1117;
+  }
+
+  &:focus {
+    border-color: t.$primary;
+    box-shadow: 0 0 0 2px rgba(0, 242, 254, 0.15);
+  }
+}

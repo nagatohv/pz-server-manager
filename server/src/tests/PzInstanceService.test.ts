@@ -286,6 +286,40 @@ describe('PzInstanceService', () => {
     expect(fs.existsSync(instance.installPath)).toBe(false);
     expect(fs.existsSync(instance.dataPath)).toBe(false);
   });
+
+  it('scans and deletes core dump files and old logs in cleanupInstance', async () => {
+    const { instance } = await service.createInstance({
+      name: 'cleanup-server', branch: 'public', gamePort: 16261, rconPort: 27015, maxPlayers: 16
+    });
+
+    const coreFile = path.join(instance.installPath, 'core.1234');
+    const normalFile = path.join(instance.installPath, 'ProjectZomboid64.json');
+    const logsDir = path.join(instance.dataPath, 'Logs');
+    fs.mkdirSync(logsDir, { recursive: true });
+
+    const oldLog = path.join(logsDir, 'old-run.log');
+    const newLog = path.join(logsDir, 'current-run.log');
+
+    fs.writeFileSync(coreFile, 'core dump', 'utf8');
+    fs.writeFileSync(normalFile, '{}', 'utf8');
+    fs.writeFileSync(oldLog, 'old log', 'utf8');
+    fs.writeFileSync(newLog, 'new log', 'utf8');
+
+    // Make oldLog older than 4 days
+    const fourDaysAgo = new Date();
+    fourDaysAgo.setDate(fourDaysAgo.getDate() - 4);
+    fs.utimesSync(oldLog, fourDaysAgo, fourDaysAgo);
+
+    // Call cleanup
+    const result = await service.cleanupInstance(instance.id);
+    expect(result.filesRemoved).toBe(2); // core.1234 and old-run.log
+    expect(result.bytesFreed).toBeGreaterThan(0);
+
+    expect(fs.existsSync(coreFile)).toBe(false);
+    expect(fs.existsSync(oldLog)).toBe(false);
+    expect(fs.existsSync(normalFile)).toBe(true);
+    expect(fs.existsSync(newLog)).toBe(true);
+  });
 });
 
 void SERVER_STRINGS;

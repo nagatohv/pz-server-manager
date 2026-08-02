@@ -34,7 +34,10 @@ export class PzInstanceRepository implements IPzInstanceRepository {
         return emptyRegistry();
       }
       return {
-        instances: parsed.instances,
+        instances: parsed.instances.map((inst: any) => ({
+          game: inst.game || 'project-zomboid',
+          ...inst
+        })),
         activeInstanceId: parsed.activeInstanceId ?? null,
         updatedAt: typeof parsed.updatedAt === 'number' ? parsed.updatedAt : Date.now()
       };

@@ -1,0 +1,34 @@
+// ============================================================
+// PortalLayout.scss — Template: layout for main portal interface
+// ============================================================
+@use '@/styles/tokens' as t;
+
+.portal-layout {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  min-height: 100vh;
+
+  &__main {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    flex-grow: 1;
+  }
+
+  &__content {
+    flex-grow: 1;
+    background: t.$bg-card;
+    backdrop-filter: blur(12px);
+    border: 1px solid t.$border-color;
+    border-radius: t.$radius-xl;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+  }
+}

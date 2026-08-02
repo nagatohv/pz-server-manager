@@ -7,6 +7,7 @@ import type { PzInstance } from '../types.js';
 
 const buildInstance = (overrides: Partial<PzInstance> = {}): PzInstance => ({
   id: 'inst-1',
+  game: 'project-zomboid',
   name: 'servertest',
   branch: '42.19',
   installed: true,
@@ -23,7 +24,7 @@ const buildInstance = (overrides: Partial<PzInstance> = {}): PzInstance => ({
   ...overrides
 });
 
-const noop = () => undefined;
+const noop = () => {};
 
 describe('InstanceCard molecule', () => {
   it('shows the name, branch, ports, max players and status badge', () => {

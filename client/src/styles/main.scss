@@ -1,0 +1,140 @@
+// ============================================================
+// main.scss — Global entrypoint & SASS design system
+// ============================================================
+@use './tokens';
+@use './reset';
+@use './animations';
+@use './typography';
+
+// Import full legacy App.css stylesheet to guarantee 100% visual fidelity
+@import '../App.css';
+
+// --- LAYOUT CONTAINERS ---
+.portal-container,
+.app-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  min-height: 100vh;
+}
+
+.portal-main {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  flex-grow: 1;
+}
+
+.tab-body {
+  flex-grow: 1;
+}
+
+.tab-content,
+.main-content {
+  flex-grow: 1;
+  background: var(--bg-card);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-xl);
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+}
+
+// --- ALERT BANNERS ---
+.alert {
+  padding: 0.875rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+
+  &-info {
+    background: rgba(0, 242, 254, 0.1);
+    border: 1px solid rgba(0, 242, 254, 0.3);
+    color: var(--primary);
+  }
+
+  &-error {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: var(--state-crashed);
+  }
+}
+
+// --- CARD UTILITY ---
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-xl);
+  padding: 1.5rem;
+}
+
+// --- TABLE ---
+.table-container {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+  overflow: hidden;
+}
+
+.table-responsive {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+
+  th {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border-color);
+    background: rgba(255, 255, 255, 0.02);
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 0.875rem 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    color: var(--text-main);
+    vertical-align: middle;
+  }
+
+  tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  tbody tr:hover td {
+    background: rgba(0, 242, 254, 0.03);
+  }
+
+  .text-right { text-align: right; }
+
+  .actions-cell {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+}
+
+// --- RESPONSIVE ---
+@media (max-width: 600px) {
+  .form-row.align-end {
+    grid-template-columns: 1fr;
+  }
+
+  .table .actions-cell {
+    justify-content: flex-start;
+  }
+}

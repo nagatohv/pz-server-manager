@@ -1,4 +1,5 @@
 import React from 'react';
+import './ProgressBar.scss';
 import { PROGRESS_HIGH_THRESHOLD, PROGRESS_COLOR_HIGH, PROGRESS_COLOR_NORMAL } from '../../config/constants.js';
 
 interface ProgressBarProps {

@@ -1,0 +1,63 @@
+// ============================================================
+// Header.scss — Organism: main portal header
+// ============================================================
+@use '@/styles/tokens' as t;
+@use '@/styles/mixins' as m;
+
+.portal-header {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  background: t.$bg-card;
+  backdrop-filter: blur(12px);
+  border: 1px solid t.$border-color;
+  padding: 1.25rem 2rem;
+  border-radius: t.$radius-xl;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
+
+  &--spaced {
+    margin-bottom: 1rem;
+  }
+}
+
+.header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.header-brand {
+  @include m.flex-row(1rem);
+
+  h1 {
+    font-family: t.$font-header;
+    font-size: 1.6rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    background: linear-gradient(90deg, t.$primary, t.$secondary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+}
+
+.biohazard-logo {
+  width: 42px;
+  height: 42px;
+  fill: t.$primary;
+  filter: drop-shadow(0 0 8px rgba(0, 242, 254, 0.5));
+}
+
+.brand-sub {
+  font-size: 0.8rem;
+  color: t.$text-muted;
+  font-family: t.$font-header;
+  display: block;
+}
+
+.header-status-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  width: 100%;
+}

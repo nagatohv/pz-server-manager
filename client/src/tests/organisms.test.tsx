@@ -19,13 +19,11 @@ const buildStatus = (status: ServerStatus) => ({
 });
 
 describe('Organisms Components Tests', () => {
-  it('should render Header component with server status and logout button', () => {
+  it('should render Header component with logout button', () => {
     const handleLogout = vi.fn();
-    render(<Header status={buildStatus(ServerStatus.Running)} onLogout={handleLogout} />);
+    render(<Header onLogout={handleLogout} />);
 
     expect(screen.getByText(/PZ Server Manager/i)).toBeDefined();
-    expect(screen.getByText(/EN LINEA/i)).toBeDefined();
-    expect(screen.getByText('4')).toBeDefined();
 
     fireEvent.click(screen.getByText(/Salir/i));
     expect(handleLogout).toHaveBeenCalled();

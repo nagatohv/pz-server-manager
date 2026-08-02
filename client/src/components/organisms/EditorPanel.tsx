@@ -3,7 +3,6 @@ import { Button } from '../atoms/Button.js';
 import { GuiCard } from '../molecules/GuiCard.js';
 import { translateDescription } from '../../utils/translator.js';
 import { CLIENT_STRINGS } from '../../config/strings.js';
-import { SANDBOX_CATEGORY_COLOR } from '../../config/constants.js';
 import { EditorType, EditorMode, ButtonVariant, type PanelConfig } from '../../types.js';
 
 interface EditorPanelProps {
@@ -31,7 +30,7 @@ const renderPanelConfigSection = (
   if (!panelConfig || !onPanelConfigChange) return null;
   return (
     <div className="card-section card-section--panel-config">
-      <h4 className="sandbox-category-title" style={{ color: 'var(--primary)' }}>
+      <h4 className="sandbox-category-title">
         Inactividad y Opciones de Portal
       </h4>
       <div className="gui-grid">
@@ -81,7 +80,7 @@ const renderIniEditor = (
     <div className="gui-categories">
       {renderPanelConfigSection(panelConfig, onPanelConfigChange)}
       <div className="card-section card-section--ini">
-        <h4 className="sandbox-category-title" style={{ color: 'var(--primary)' }}>
+        <h4 className="sandbox-category-title">
           Parámetros Directos (server.ini)
         </h4>
         <div className="gui-grid">
@@ -120,7 +119,7 @@ const renderSandboxEditor = (
 
         return (
           <div key={categoryKey} className="card-section card-section--sandbox">
-            <h4 className="sandbox-category-title" style={{ color: SANDBOX_CATEGORY_COLOR }}>
+            <h4 className="sandbox-category-title">
               {CLIENT_STRINGS.EDITOR_PANEL.CATEGORY_PREFIX}{categoryKey}
             </h4>
             <div className="gui-grid">

@@ -1,0 +1,42 @@
+// ============================================================
+// NavTabs.scss — Molecule: navigation tabs
+// ============================================================
+@use '@/styles/tokens' as t;
+
+.nav-tabs {
+  display: flex;
+  gap: 0.75rem;
+  border-bottom: 1px solid t.$border-color;
+  padding-bottom: 0.5rem;
+  overflow-x: auto;
+}
+
+.nav-item,
+.tab-btn {
+  background: transparent;
+  border: none;
+  color: t.$text-muted;
+  font-family: t.$font-header;
+  font-size: 0.95rem;
+  font-weight: 600;
+  padding: 0.75rem 1.25rem;
+  cursor: pointer;
+  border-radius: t.$radius-md;
+  transition: t.$transition-smooth;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  white-space: nowrap;
+
+  &:hover {
+    color: t.$text-main;
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  &.active {
+    color: t.$primary;
+    background: rgba(0, 242, 254, 0.08);
+    border: 1px solid rgba(0, 242, 254, 0.2);
+    box-shadow: 0 0 15px rgba(0, 242, 254, 0.1);
+  }
+}

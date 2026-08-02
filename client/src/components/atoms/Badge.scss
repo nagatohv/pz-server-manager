@@ -1,0 +1,69 @@
+// ============================================================
+// Badge.scss — Atom: status badge styles
+// ============================================================
+@use '@/styles/tokens' as t;
+@use '@/styles/mixins' as m;
+
+.status-badge {
+  @include m.status-badge;
+  font-size: 0.72rem;
+
+  &--running {
+    background: rgba(16, 185, 129, 0.1);
+    color: t.$state-running;
+    border-color: rgba(16, 185, 129, 0.25);
+    box-shadow: t.$shadow-glow-green;
+  }
+
+  &--stopped {
+    background: rgba(100, 116, 139, 0.1);
+    color: t.$state-stopped;
+    border-color: rgba(100, 116, 139, 0.2);
+  }
+
+  &--starting {
+    background: rgba(245, 158, 11, 0.1);
+    color: t.$state-starting;
+    border-color: rgba(245, 158, 11, 0.2);
+    animation: blink 1.5s infinite;
+  }
+
+  &--updating,
+  &--stopping {
+    background: rgba(0, 242, 254, 0.15);
+    color: t.$color-cyan;
+    border-color: rgba(0, 242, 254, 0.35);
+    animation: blink 1.5s infinite;
+  }
+
+  &--crashed {
+    background: rgba(239, 68, 68, 0.15);
+    color: t.$state-crashed;
+    border-color: rgba(239, 68, 68, 0.3);
+    box-shadow: t.$shadow-glow-red;
+  }
+
+  &--instalado {
+    background: rgba(127, 90, 240, 0.12);
+    color: t.$color-purple;
+    border-color: rgba(127, 90, 240, 0.3);
+  }
+
+  &--game {
+    background: rgba(56, 189, 248, 0.12);
+    color: t.$color-cyan;
+    border-color: rgba(56, 189, 248, 0.3);
+  }
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: currentColor;
+
+  .status-badge--running &,
+  .status-badge--crashed & {
+    animation: pulse-glow 1.5s infinite;
+  }
+}

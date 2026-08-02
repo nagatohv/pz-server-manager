@@ -9,7 +9,6 @@ import { LoginPage } from './components/pages/LoginPage.js';
 import { PortalPage } from './components/pages/PortalPage.js';
 import { AlertModal } from './components/molecules/AlertModal.js';
 import { ServerAction } from './types.js';
-import './App.css';
 
 export default function App() {
   const modal = useModal();
