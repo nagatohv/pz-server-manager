@@ -47,11 +47,13 @@ export const ConsolePanel: React.FC<ConsolePanelProps> = ({
   hideServerSelect = false
 }) => {
   const [commandInput, setCommandInput] = useState('');
-  const logEndRef = useRef<HTMLDivElement>(null);
+  const terminalBodyRef = useRef<HTMLDivElement>(null);
   const isServerRunning = status.status === ServerStatus.Running;
 
   useEffect(() => {
-    logEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (terminalBodyRef.current) {
+      terminalBodyRef.current.scrollTop = terminalBodyRef.current.scrollHeight;
+    }
   }, [logs]);
 
   const handleCommandSubmit = (e: FormEvent) => {
@@ -92,13 +94,12 @@ export const ConsolePanel: React.FC<ConsolePanelProps> = ({
           <span className="terminal-title">{CLIENT_STRINGS.CONSOLE_PANEL.TERMINAL_TITLE}</span>
         </div>
 
-        <div className="terminal-body">
+        <div className="terminal-body" ref={terminalBodyRef}>
           {logs.map((log, index) => (
             <div key={index} className="log-line">
               {log}
             </div>
           ))}
-          <div ref={logEndRef} />
         </div>
 
         <form onSubmit={handleCommandSubmit} className="terminal-input-bar">
