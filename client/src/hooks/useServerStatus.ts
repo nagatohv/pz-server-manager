@@ -122,7 +122,7 @@ export function useServerStatus(
             applyBranchSnapshot(snapshot);
           }
         }
-      } catch (_) {}
+      } catch (_) { }
     };
 
     ws.onclose = () => {

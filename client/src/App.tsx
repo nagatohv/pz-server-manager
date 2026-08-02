@@ -66,7 +66,6 @@ export default function App() {
           error: instances.error
         }}
         route={router.route}
-        onNavigateToConsole={router.navigateToConsole}
         onNavigateToServers={router.navigateToServers}
         onNavigateToServerConfig={router.navigateToServerConfig}
         onLogout={logout}

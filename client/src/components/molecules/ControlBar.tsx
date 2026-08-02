@@ -21,6 +21,7 @@ interface ControlBarProps {
   instances: PzInstance[];
   activeInstanceId: string | null;
   onSelectInstance: (id: string) => void;
+  hideServerSelect?: boolean;
 }
 
 export const ControlBar: React.FC<ControlBarProps> = ({
@@ -31,7 +32,8 @@ export const ControlBar: React.FC<ControlBarProps> = ({
   onKill,
   instances = [],
   activeInstanceId,
-  onSelectInstance
+  onSelectInstance,
+  hideServerSelect = false
 }) => {
   const isRunning = status === ServerStatus.Running;
   const canStart = (status === ServerStatus.Stopped || status === ServerStatus.Crashed) && instances.length > 0;
@@ -40,28 +42,30 @@ export const ControlBar: React.FC<ControlBarProps> = ({
   return (
     <div className="control-bar">
       <div className="control-bar__group control-bar__group--run">
-        <div className="control-bar__server-select-container">
-          <label htmlFor="active-server-select" className="control-bar__server-label">
-            {CLIENT_STRINGS.CONTROL_BAR.SERVER_SELECT_LABEL}
-          </label>
-          <select
-            id="active-server-select"
-            className="form-control control-bar__server-select"
-            value={activeInstanceId ?? ''}
-            onChange={(e) => onSelectInstance(e.target.value)}
-            disabled={status === ServerStatus.Running || status === ServerStatus.Starting || status === ServerStatus.Stopping || status === ServerStatus.Updating}
-            aria-label="Active server selector"
-          >
-            {instances.length === 0 && (
-              <option value="">{CLIENT_STRINGS.CONTROL_BAR.NO_SERVERS_AVAILABLE}</option>
-            )}
-            {instances.map((inst) => (
-              <option key={inst.id} value={inst.id}>
-                {inst.name}
-              </option>
-            ))}
-          </select>
-        </div>
+        {!hideServerSelect && (
+          <div className="control-bar__server-select-container">
+            <label htmlFor="active-server-select" className="control-bar__server-label">
+              {CLIENT_STRINGS.CONTROL_BAR.SERVER_SELECT_LABEL}
+            </label>
+            <select
+              id="active-server-select"
+              className="form-control control-bar__server-select"
+              value={activeInstanceId ?? ''}
+              onChange={(e) => onSelectInstance(e.target.value)}
+              disabled={status === ServerStatus.Running || status === ServerStatus.Starting || status === ServerStatus.Stopping || status === ServerStatus.Updating}
+              aria-label="Active server selector"
+            >
+              {instances.length === 0 && (
+                <option value="">{CLIENT_STRINGS.CONTROL_BAR.NO_SERVERS_AVAILABLE}</option>
+              )}
+              {instances.map((inst) => (
+                <option key={inst.id} value={inst.id}>
+                  {inst.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         <Button variant={ButtonVariant.Success} onClick={onStart} disabled={!canStart} data-action={ServerAction.Start}>
           <PlayIcon /> {CLIENT_STRINGS.CONTROL_BAR.START_SERVER}

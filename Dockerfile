@@ -53,6 +53,7 @@ RUN dpkg --add-architecture i386 && \
     lib32stdc++6 \
     libc6-i386 \
     lib32z1 \
+    zip \
     unzip \
     procps \
     bash \

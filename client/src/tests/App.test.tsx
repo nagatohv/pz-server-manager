@@ -26,6 +26,17 @@ describe('App React Component', () => {
             })
           });
         }
+        if (typeof url === 'string' && url.includes('/api/instances')) {
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            json: async () => ({
+              instances: [],
+              activeInstanceId: null,
+              updatedAt: 1
+            })
+          });
+        }
         return Promise.resolve({
           ok: true,
           status: 200,
@@ -79,7 +90,7 @@ describe('App React Component', () => {
       await new Promise((resolve) => setTimeout(resolve, 0));
     });
 
-    expect(screen.getByText(/Consola y Control/i)).toBeDefined();
+    expect(screen.getByText(/Servidores de Project Zomboid/i)).toBeDefined();
 
     const logoutBtn = screen.getByRole('button', { name: /Salir/i });
     await act(async () => {

@@ -26,7 +26,11 @@ export function useInstances(token: string | null, onSessionExpired: () => void)
     setLoading(true);
     try {
       const reg = await ApiService.listInstances(token);
-      setRegistry(reg);
+      setRegistry({
+        instances: Array.isArray(reg?.instances) ? reg.instances : [],
+        activeInstanceId: reg?.activeInstanceId || null,
+        updatedAt: reg?.updatedAt || Date.now()
+      });
       setError(null);
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : 'Error desconocido';

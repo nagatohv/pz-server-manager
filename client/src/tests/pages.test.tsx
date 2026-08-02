@@ -12,7 +12,7 @@ const baseStatus = {
   idleShutdown: { minutes: 0, active: false, remainingSeconds: 0 }
 };
 
-const dummyRoute = { path: 'console' as const, serverId: null, configSubTab: 'editor' as const };
+const dummyRoute = { path: 'servers' as const, serverId: null, configSubTab: 'console' as const };
 const noop = () => undefined;
 
 describe('Pages Components Tests', () => {
@@ -43,7 +43,6 @@ describe('Pages Components Tests', () => {
         savedMessage=""
         instances={{ instances: [], activeInstanceId: null, loading: false, error: null }}
         route={dummyRoute}
-        onNavigateToConsole={noop}
         onNavigateToServers={noop}
         onNavigateToServerConfig={noop}
         onLogout={vi.fn()}
@@ -76,6 +75,6 @@ describe('Pages Components Tests', () => {
       />
     );
 
-    expect(screen.getByText(/Consola y Control/i)).toBeDefined();
+    expect(screen.getByText(/Servidores de Project Zomboid/i)).toBeDefined();
   });
 });

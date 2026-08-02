@@ -22,6 +22,7 @@ interface ConsolePanelProps {
   instances: PzInstance[];
   activeInstanceId: string | null;
   onSelectInstance: (id: string) => void;
+  hideServerSelect?: boolean;
 }
 
 export const ConsolePanel: React.FC<ConsolePanelProps> = ({
@@ -42,7 +43,8 @@ export const ConsolePanel: React.FC<ConsolePanelProps> = ({
   onSendCommand,
   instances,
   activeInstanceId,
-  onSelectInstance
+  onSelectInstance,
+  hideServerSelect = false
 }) => {
   const [commandInput, setCommandInput] = useState('');
   const logEndRef = useRef<HTMLDivElement>(null);
@@ -79,6 +81,7 @@ export const ConsolePanel: React.FC<ConsolePanelProps> = ({
         instances={instances}
         activeInstanceId={activeInstanceId}
         onSelectInstance={onSelectInstance}
+        hideServerSelect={hideServerSelect}
       />
 
       <div className="terminal-window">

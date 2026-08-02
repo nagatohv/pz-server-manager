@@ -148,8 +148,7 @@ describe('Organisms Components Tests', () => {
         branchesSource="steam"
         savedMessage=""
         instances={{ instances: [], activeInstanceId: null, loading: false, error: null }}
-        route={{ path: 'servers', serverId: null, configSubTab: 'editor' }}
-        onNavigateToConsole={() => undefined}
+        route={{ path: 'servers', serverId: null, configSubTab: 'console' }}
         onNavigateToServers={() => undefined}
         onNavigateToServerConfig={() => undefined}
         onLogout={vi.fn()}
@@ -181,8 +180,7 @@ describe('Organisms Components Tests', () => {
         onMigrateInstance={vi.fn() as any}
       />
     );
-    // The Servers tab must be present in the navigation
-    expect(screen.getByText(/^Servidores$/)).toBeDefined();
+    expect(screen.getByText(/Servidores de Project Zomboid/i)).toBeDefined();
   });
 
   it('should render EditorPanel for INI, Sandbox and Spawn modes', () => {

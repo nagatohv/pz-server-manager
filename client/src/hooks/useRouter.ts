@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 
-export type RoutePath = 'console' | 'servers' | 'server-config';
-export type ConfigSubTab = 'editor' | 'mods' | 'backups';
+export type RoutePath = 'servers' | 'server-config';
+export type ConfigSubTab = 'console' | 'editor' | 'mods' | 'backups';
 
 export interface RouteState {
   path: RoutePath;
@@ -11,21 +11,18 @@ export interface RouteState {
 
 const parseHash = (hashStr: string): RouteState => {
   const clean = hashStr.replace(/^#\/?/, '').trim();
-  if (!clean || clean.startsWith('console')) {
-    return { path: 'console', serverId: null, configSubTab: 'editor' };
-  }
   if (clean.startsWith('servers')) {
     const parts = clean.split('/');
-    // #/servers/:id/config/:tab or #/servers/:id/config
     if (parts.length >= 3 && parts[2] === 'config') {
       const serverId = parts[1];
-      const tabParam = (parts[3] ?? 'editor') as ConfigSubTab;
-      const validTab: ConfigSubTab = ['editor', 'mods', 'backups'].includes(tabParam) ? (tabParam as ConfigSubTab) : 'editor';
+      const tabParam = (parts[3] ?? 'console') as ConfigSubTab;
+      const validTab: ConfigSubTab = ['console', 'editor', 'mods', 'backups'].includes(tabParam) ? (tabParam as ConfigSubTab) : 'console';
       return { path: 'server-config', serverId, configSubTab: validTab };
     }
-    return { path: 'servers', serverId: null, configSubTab: 'editor' };
+    return { path: 'servers', serverId: null, configSubTab: 'console' };
   }
-  return { path: 'console', serverId: null, configSubTab: 'editor' };
+  // Default fallback is list of servers
+  return { path: 'servers', serverId: null, configSubTab: 'console' };
 };
 
 export const useRouter = () => {
@@ -39,21 +36,16 @@ export const useRouter = () => {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
-  const navigateToConsole = useCallback(() => {
-    window.location.hash = '#/console';
-  }, []);
-
   const navigateToServers = useCallback(() => {
     window.location.hash = '#/servers';
   }, []);
 
-  const navigateToServerConfig = useCallback((serverId: string, subTab: ConfigSubTab = 'editor') => {
+  const navigateToServerConfig = useCallback((serverId: string, subTab: ConfigSubTab = 'console') => {
     window.location.hash = `#/servers/${serverId}/config/${subTab}`;
   }, []);
 
   return {
     route,
-    navigateToConsole,
     navigateToServers,
     navigateToServerConfig
   };

@@ -3,10 +3,11 @@ import { ModsPanel } from './ModsPanel.js';
 import { EditorPanel } from './EditorPanel.js';
 import { BackupsPanel } from './BackupsPanel.js';
 import { Button } from '../atoms/Button.js';
-import { FileIcon, PuzzleIcon, DatabaseIcon } from '../atoms/Icon.js';
-import { ButtonVariant } from '../../types.js';
+import { FileIcon, PuzzleIcon, DatabaseIcon, TerminalIcon } from '../atoms/Icon.js';
+import { ButtonVariant, BranchInfo, BranchCatalogSource, BranchLoadState, ServerStatusPayload } from '../../types.js';
 import { ConfigSubTab } from '../../hooks/useRouter.js';
 import { useBackups } from '../../hooks/useBackups.js';
+import { ConsolePanel } from './ConsolePanel.js';
 import type {
   IniSettingItem,
   PanelConfig,
@@ -43,6 +44,25 @@ interface ServerConfigWorkspaceProps {
   onToggleSpawnRegion: (index: number) => void;
   onRemoveSpawnRegion: (index: number) => void;
   onSaveEditor: (e: FormEvent) => void;
+
+  // Console control props
+  status: ServerStatusPayload;
+  logs: string[];
+  selectedBranch: string;
+  availableBranches: BranchInfo[];
+  branchesState: BranchLoadState;
+  branchesError: string | null;
+  branchesSource: BranchCatalogSource;
+  onBranchChange: (branch: string) => void;
+  onStart: () => void;
+  onStop: () => void;
+  onRestart: () => void;
+  onKill: () => void;
+  onUpdate: () => void;
+  onRefreshBranches: () => void;
+  onSendCommand: (cmd: string) => void;
+  activeInstanceId: string | null;
+  onSelectInstance: (id: string) => Promise<unknown>;
 }
 
 export const ServerConfigWorkspace: React.FC<ServerConfigWorkspaceProps> = ({
@@ -70,7 +90,24 @@ export const ServerConfigWorkspace: React.FC<ServerConfigWorkspaceProps> = ({
   onRemoveSpawnRegion,
   onSaveEditor,
   onIniSettingChange,
-  iniSettings
+  iniSettings,
+  status,
+  logs,
+  selectedBranch,
+  availableBranches,
+  branchesState,
+  branchesError,
+  branchesSource,
+  onBranchChange,
+  onStart,
+  onStop,
+  onRestart,
+  onKill,
+  onUpdate,
+  onRefreshBranches,
+  onSendCommand,
+  activeInstanceId,
+  onSelectInstance
 }) => {
   const {
     backups,
@@ -97,6 +134,13 @@ export const ServerConfigWorkspace: React.FC<ServerConfigWorkspaceProps> = ({
         <nav className="nav-tabs server-config-workspace__tabs">
           <Button
             variant={ButtonVariant.Nav}
+            active={activeSubTab === 'console'}
+            onClick={() => onSubTabChange('console')}
+          >
+            <TerminalIcon /> Consola / Terminal
+          </Button>
+          <Button
+            variant={ButtonVariant.Nav}
             active={activeSubTab === 'editor'}
             onClick={() => onSubTabChange('editor')}
           >
@@ -120,6 +164,48 @@ export const ServerConfigWorkspace: React.FC<ServerConfigWorkspaceProps> = ({
       </div>
 
       <div className="server-config-workspace__body">
+        {activeSubTab === 'console' && (
+          activeInstanceId === instance.id ? (
+            <ConsolePanel
+              status={status}
+              logs={logs}
+              selectedBranch={selectedBranch}
+              availableBranches={availableBranches}
+              branchesState={branchesState}
+              branchesError={branchesError}
+              branchesSource={branchesSource}
+              onBranchChange={onBranchChange}
+              onStart={onStart}
+              onStop={onStop}
+              onRestart={onRestart}
+              onKill={onKill}
+              onUpdate={onUpdate}
+              onRefreshBranches={onRefreshBranches}
+              onSendCommand={onSendCommand}
+              instances={[instance]}
+              activeInstanceId={activeInstanceId}
+              onSelectInstance={async () => {}}
+              hideServerSelect={true}
+            />
+          ) : (
+            <div className="active-server-notice card p-4 text-center my-4" style={{ margin: '2rem auto', maxWidth: '600px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+              <h4 className="mb-3 text-warning" style={{ fontSize: '1.25rem', marginBottom: '1rem', color: 'var(--color-warning)' }}>
+                Este no es el servidor activo actual
+              </h4>
+              <p className="mb-4" style={{ marginBottom: '1.5rem', opacity: 0.8 }}>
+                La consola, comandos RCON y controles de ejecución en tiempo real solo están disponibles para el servidor activo en el backend.
+              </p>
+              <Button
+                variant={ButtonVariant.Success}
+                onClick={() => onSelectInstance(instance.id)}
+                data-action="activate-server"
+              >
+                Activar "{instance.name}" para controlar
+              </Button>
+            </div>
+          )
+        )}
+
         {activeSubTab === 'editor' && (
           <EditorPanel
             editorType={editorType}

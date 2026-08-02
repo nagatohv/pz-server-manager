@@ -37,7 +37,6 @@ interface PortalPageProps {
   savedMessage: string;
   instances: { instances: PzInstance[]; activeInstanceId: string | null; loading: boolean; error: string | null };
   route: RouteState;
-  onNavigateToConsole: () => void;
   onNavigateToServers: () => void;
   onNavigateToServerConfig: (serverId: string, subTab?: ConfigSubTab) => void;
   onLogout: () => void;
@@ -71,16 +70,7 @@ interface PortalPageProps {
 }
 
 export const PortalPage: React.FC<PortalPageProps> = (props) => {
-  const { route, onNavigateToConsole, onNavigateToServers, onNavigateToServerConfig } = props;
-  const activeNavTab = route.path === 'servers' || route.path === 'server-config' ? PortalTab.Servers : PortalTab.Console;
-
-  const handleNavTabChange = (tab: PortalTab) => {
-    if (tab === PortalTab.Servers) {
-      onNavigateToServers();
-    } else {
-      onNavigateToConsole();
-    }
-  };
+  const { route, onNavigateToServers, onNavigateToServerConfig } = props;
 
   const configuredInstance = route.path === 'server-config' && route.serverId
     ? props.instances.instances.find((i) => i.id === route.serverId)
@@ -91,8 +81,6 @@ export const PortalPage: React.FC<PortalPageProps> = (props) => {
       <Header status={props.status} onLogout={props.onLogout} />
 
       <main className="portal-main">
-        <NavTabs activeTab={activeNavTab} onTabChange={handleNavTabChange} />
-
         <div className="tab-body">
           {route.path === 'server-config' && configuredInstance && (
             <ServerConfigWorkspace
@@ -122,36 +110,6 @@ export const PortalPage: React.FC<PortalPageProps> = (props) => {
               onToggleSpawnRegion={props.onToggleSpawnRegion}
               onRemoveSpawnRegion={props.onRemoveSpawnRegion}
               onSaveEditor={props.onSaveEditor}
-            />
-          )}
-
-          {route.path === 'servers' && (
-            <ServersPage
-              branches={props.availableBranches}
-              branchesSource={props.branchesSource}
-              branchesState={props.branchesState}
-              branchesError={props.branchesError}
-              onRefreshBranches={props.onRefreshBranches}
-              activeStatus={props.status.status}
-              onStart={props.onStart}
-              onStop={props.onStop}
-              onConfigure={(id) => onNavigateToServerConfig(id, 'editor')}
-              harness={{
-                registry: props.instances,
-                loading: props.instances.loading,
-                error: props.instances.error,
-                refresh: async () => undefined,
-                create: props.onCreateInstance as any,
-                select: props.onSelectInstance as any,
-                install: props.onInstallInstance as any,
-                remove: props.onDeleteInstance as any,
-                migrate: props.onMigrateInstance as any
-              }}
-            />
-          )}
-
-          {route.path === 'console' && (
-            <ConsolePanel
               status={props.status}
               logs={props.logs}
               selectedBranch={props.selectedBranch}
@@ -167,9 +125,33 @@ export const PortalPage: React.FC<PortalPageProps> = (props) => {
               onUpdate={props.onUpdate}
               onRefreshBranches={props.onRefreshBranches}
               onSendCommand={props.onSendCommand}
-              instances={props.instances.instances}
               activeInstanceId={props.instances.activeInstanceId}
               onSelectInstance={props.onSelectInstance}
+            />
+          )}
+
+          {route.path === 'servers' && (
+            <ServersPage
+              branches={props.availableBranches}
+              branchesSource={props.branchesSource}
+              branchesState={props.branchesState}
+              branchesError={props.branchesError}
+              onRefreshBranches={props.onRefreshBranches}
+              activeStatus={props.status.status}
+              onStart={props.onStart}
+              onStop={props.onStop}
+              onConfigure={(id) => onNavigateToServerConfig(id, 'console')}
+              harness={{
+                registry: props.instances,
+                loading: props.instances.loading,
+                error: props.instances.error,
+                refresh: async () => undefined,
+                create: props.onCreateInstance as any,
+                select: props.onSelectInstance as any,
+                install: props.onInstallInstance as any,
+                remove: props.onDeleteInstance as any,
+                migrate: props.onMigrateInstance as any
+              }}
             />
           )}
         </div>
