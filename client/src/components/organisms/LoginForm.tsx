@@ -1,8 +1,9 @@
 import React, { useState, FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { BiohazardIcon } from '../atoms/Icon.js';
 import { Input } from '../atoms/Input.js';
 import { Button } from '../atoms/Button.js';
-import { CLIENT_STRINGS } from '../../config/strings.js';
+import { ENV } from '../../config/env.js';
 import { ButtonVariant } from '../../types.js';
 
 interface LoginFormProps {
@@ -10,6 +11,7 @@ interface LoginFormProps {
 }
 
 export const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
+  const { t } = useTranslation();
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -21,7 +23,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
     try {
       await onLogin(password);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : CLIENT_STRINGS.AUTH.ERR_AUTH_FAILED;
+      const message = err instanceof Error ? err.message : t('auth.errorFailed');
       setError(message);
     } finally {
       setLoading(false);
@@ -29,16 +31,16 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
   };
 
   const buttonLabel = loading
-    ? CLIENT_STRINGS.AUTH.LOADING_TEXT
-    : CLIENT_STRINGS.AUTH.LOGIN_BTN;
+    ? t('auth.loggingIn')
+    : t('auth.loginBtn');
 
   return (
     <div className="login-container">
       <div className="login-card">
         <div className="login-header">
           <BiohazardIcon />
-          <h2>{CLIENT_STRINGS.TITLE}</h2>
-          <p>{CLIENT_STRINGS.AUTH.SUBTITLE}</p>
+          <h2>{ENV.APP_NAME}</h2>
+          <p>{t('auth.subtitle')}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="login-form">
@@ -46,19 +48,14 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
 
           <Input
             type="password"
-            placeholder={CLIENT_STRINGS.AUTH.PASSWORD_PLACEHOLDER}
+            placeholder={t('auth.placeholder')}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            required
+            disabled={loading}
             autoFocus
           />
 
-          <Button
-            type="submit"
-            variant={ButtonVariant.Primary}
-            className="login-form__submit"
-            disabled={loading}
-          >
+          <Button type="submit" variant={ButtonVariant.Primary} disabled={loading} className="login-form__submit">
             {buttonLabel}
           </Button>
         </form>

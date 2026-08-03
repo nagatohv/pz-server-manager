@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '../atoms/Button.js';
 import { Input } from '../atoms/Input.js';
 import { Select } from '../atoms/Select.js';
-import { CLIENT_STRINGS } from '../../config/strings.js';
 import { GAME_ID_PROJECT_ZOMBOID } from '../../config/constants.js';
 import { RefreshIcon } from '../atoms/Icon.js';
 import { ButtonVariant, type BranchInfo, type BranchCatalogSource, type BranchLoadState } from '../../types.js';
@@ -35,48 +35,42 @@ const DEFAULT_FORM = {
   maxPlayers: 16
 };
 
-const formatBranchOption = (branch: BranchInfo): { value: string; label: string } => {
-  const name = branch.isDefault
-    ? CLIENT_STRINGS.SERVERS_PAGE.BRANCH_PUBLIC_DEFAULT
-    : (branch.name || CLIENT_STRINGS.SERVERS_PAGE.BRANCH_PUBLIC_DEFAULT);
-  const label = branch.buildId
-    ? CLIENT_STRINGS.SERVERS_PAGE.BRANCH_OPTION_WITH_BUILD
-      .replace('{name}', name)
-      .replace('{buildId}', branch.buildId)
-    : name;
-  return { value: branch.name, label };
-};
-
 export const CreateInstanceDialog: React.FC<CreateInstanceDialogProps> = ({
   branches,
-  branchesSource,
   branchesState,
   branchesError,
   onRefreshBranches,
   onSubmit,
   onCancel
 }) => {
+  const { t } = useTranslation();
   const [form, setForm] = useState({ ...DEFAULT_FORM });
   const [submitting, setSubmitting] = useState(false);
 
   const isBranchLoading = branchesState === 'loading';
   const hasBranchError = branchesState === 'error' || (branches.length === 0 && !isBranchLoading);
 
-  const parsedBranchOptions = branches.map(formatBranchOption);
+  const parsedBranchOptions = branches.map((branch) => {
+    const name = branch.isDefault
+      ? t('servers.createDialog.branchPublicDefault')
+      : (branch.name || t('servers.createDialog.branchPublicDefault'));
+    const label = branch.buildId
+      ? t('servers.createDialog.branchOptionWithBuild', { name, buildId: branch.buildId })
+      : name;
+    return { value: branch.name, label };
+  });
 
   const branchOptions = isBranchLoading
-    ? [{ value: '', label: CLIENT_STRINGS.SERVERS_PAGE.CREATE_DIALOG.BRANCH_LOADING }]
+    ? [{ value: '', label: t('servers.createDialog.branchLoading') }]
     : hasBranchError
-    ? [{ value: '', label: CLIENT_STRINGS.SERVERS_PAGE.CREATE_DIALOG.BRANCH_ERROR }]
+    ? [{ value: '', label: t('servers.createDialog.branchError') }]
     : parsedBranchOptions;
 
   const branchDescription = isBranchLoading
-    ? CLIENT_STRINGS.SERVERS_PAGE.CREATE_DIALOG.BRANCH_DESC_LOADING
+    ? t('servers.createDialog.branchDescLoading')
     : hasBranchError
-    ? CLIENT_STRINGS.SERVERS_PAGE.CREATE_DIALOG.BRANCH_DESC_ERROR.replace('{error}', branchesError || CLIENT_STRINGS.SERVERS_PAGE.BRANCH_FALLBACK_HINT)
-    : branches.length === 1
-    ? CLIENT_STRINGS.SERVERS_PAGE.CREATE_DIALOG.BRANCH_COUNT_SINGLE
-    : CLIENT_STRINGS.SERVERS_PAGE.CREATE_DIALOG.BRANCH_COUNT_PLURAL.replace('{count}', String(branches.length));
+    ? t('servers.createDialog.branchDescError', { error: branchesError || t('servers.createDialog.branchFallbackHint') })
+    : t('servers.createDialog.branchCount', { count: branches.length });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,12 +85,12 @@ export const CreateInstanceDialog: React.FC<CreateInstanceDialogProps> = ({
 
   return (
     <form className="modal instance-create-form" onSubmit={handleSubmit} data-component="create-instance-dialog">
-      <h3>{CLIENT_STRINGS.SERVERS_PAGE.CREATE_BTN}</h3>
+      <h3>{t('servers.createBtn')}</h3>
 
       <Input
         name="name"
-        label={CLIENT_STRINGS.SERVERS_PAGE.NAME_LABEL}
-        placeholder={CLIENT_STRINGS.SERVERS_PAGE.NAME_PLACEHOLDER}
+        label={t('createModal.name')}
+        placeholder={t('createModal.namePlaceholder')}
         value={form.name}
         onChange={(e) => setForm({ ...form, name: e.target.value })}
         minLength={3}
@@ -107,7 +101,7 @@ export const CreateInstanceDialog: React.FC<CreateInstanceDialogProps> = ({
 
       <div className="form-group mb-3">
         <label htmlFor="game" className="form-label instance-create-form__select-label">
-          {CLIENT_STRINGS.SERVERS_PAGE.CREATE_DIALOG.GAME_LABEL}
+          {t('createModal.game')}
         </label>
         <select
           id="game"
@@ -116,16 +110,16 @@ export const CreateInstanceDialog: React.FC<CreateInstanceDialogProps> = ({
           onChange={(e) => setForm({ ...form, game: e.target.value })}
           className="form-control instance-create-form__select-input"
         >
-          <option value={GAME_ID_PROJECT_ZOMBOID}>{CLIENT_STRINGS.SERVERS_PAGE.CREATE_DIALOG.PROJECT_ZOMBOID}</option>
+          <option value={GAME_ID_PROJECT_ZOMBOID}>{t('createModal.projectZomboid')}</option>
         </select>
         <span className="instance-create-form__select-desc">
-          {CLIENT_STRINGS.SERVERS_PAGE.CREATE_DIALOG.GAME_DESC}
+          {t('createModal.gameDesc')}
         </span>
       </div>
 
       <div className="form-group branch-select-group">
         <div className="branch-select-header">
-          <label htmlFor="branch">{CLIENT_STRINGS.SERVERS_PAGE.BRANCH_LABEL}</label>
+          <label htmlFor="branch">{t('createModal.branch')}</label>
           {onRefreshBranches && (
             <Button
               type="button"
@@ -133,9 +127,9 @@ export const CreateInstanceDialog: React.FC<CreateInstanceDialogProps> = ({
               onClick={onRefreshBranches}
               disabled={isBranchLoading}
               className="btn-sm btn-retry-branches"
-              title={CLIENT_STRINGS.SERVERS_PAGE.CREATE_DIALOG.RETRY_TITLE}
+              title={t('servers.createDialog.retryTitle')}
             >
-              <RefreshIcon /> {CLIENT_STRINGS.SERVERS_PAGE.CREATE_DIALOG.RETRY_BTN}
+              <RefreshIcon /> {t('servers.createDialog.retryBtn')}
             </Button>
           )}
         </div>
@@ -155,7 +149,7 @@ export const CreateInstanceDialog: React.FC<CreateInstanceDialogProps> = ({
         <Input
           name="gamePort"
           type="number"
-          label={CLIENT_STRINGS.SERVERS_PAGE.GAME_PORT_LABEL}
+          label={t('createModal.gamePort')}
           value={form.gamePort}
           onChange={(e) => setForm({ ...form, gamePort: Number(e.target.value) })}
           min={1024}
@@ -164,7 +158,7 @@ export const CreateInstanceDialog: React.FC<CreateInstanceDialogProps> = ({
         <Input
           name="rconPort"
           type="number"
-          label={CLIENT_STRINGS.SERVERS_PAGE.RCON_PORT_LABEL}
+          label={t('createModal.rconPort')}
           value={form.rconPort}
           onChange={(e) => setForm({ ...form, rconPort: Number(e.target.value) })}
           min={1024}
@@ -173,7 +167,7 @@ export const CreateInstanceDialog: React.FC<CreateInstanceDialogProps> = ({
         <Input
           name="maxPlayers"
           type="number"
-          label={CLIENT_STRINGS.SERVERS_PAGE.MAX_PLAYERS_LABEL}
+          label={t('createModal.maxPlayers')}
           value={form.maxPlayers}
           onChange={(e) => setForm({ ...form, maxPlayers: Number(e.target.value) })}
           min={1}
@@ -183,10 +177,10 @@ export const CreateInstanceDialog: React.FC<CreateInstanceDialogProps> = ({
 
       <div className="form-actions">
         <Button type="button" variant={ButtonVariant.Control} onClick={onCancel} disabled={submitting}>
-          Cancelar
+          {t('common.cancel')}
         </Button>
         <Button type="submit" variant={ButtonVariant.Primary} disabled={submitting} data-action="submit-create">
-          {CLIENT_STRINGS.SERVERS_PAGE.CREATE_BTN}
+          {t('servers.createBtn')}
         </Button>
       </div>
     </form>

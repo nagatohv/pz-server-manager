@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import React from 'react';
+import '../i18n/index.js';
 import { InstanceCard } from '../components/molecules/InstanceCard.js';
 import { ButtonVariant, ServerStatus } from '../types.js';
 import type { PzInstance } from '../types.js';
@@ -64,7 +65,7 @@ describe('InstanceCard molecule', () => {
         onMigrate={noop}
       />
     );
-    expect(screen.getByText(/ejecutándose/i)).toBeDefined();
+    expect(screen.getByText(/ejecutándose|en línea|online/i)).toBeDefined();
   });
 
   it('renders the installed badge when the instance has been installed', () => {
@@ -82,7 +83,7 @@ describe('InstanceCard molecule', () => {
         onMigrate={noop}
       />
     );
-    expect(screen.getByText(/instalado/i)).toBeDefined();
+    expect(screen.getByText(/instalado|installed/i)).toBeDefined();
   });
 
   it('renders the not-installed badge when the instance has not been installed', () => {
@@ -100,7 +101,7 @@ describe('InstanceCard molecule', () => {
         onMigrate={noop}
       />
     );
-    expect(screen.getByText(/sin instalar/i)).toBeDefined();
+    expect(screen.getByText(/sin instalar|not installed/i)).toBeDefined();
   });
 
   it('shows the empty branch label when branch is the default', () => {
@@ -118,7 +119,7 @@ describe('InstanceCard molecule', () => {
         onMigrate={noop}
       />
     );
-    expect(screen.getByText(/p[úu]blica.*por defecto/i)).toBeDefined();
+    expect(screen.getByText(/public|p[úu]blica/i)).toBeDefined();
   });
 
   it('invokes onInstall when the update button is clicked', () => {

@@ -1,6 +1,5 @@
-import { CLIENT_STRINGS } from '../config/strings.js';
+import { translate } from './i18n.js';
 
-/** Mapa de reemplazos de texto en inglés → español para descripciones genéricas */
 const FALLBACK_REPLACEMENTS: ReadonlyArray<readonly [RegExp, string]> = [
   [/Disables/gi, 'Desactiva'],
   [/Enables/gi, 'Habilita'],
@@ -10,19 +9,10 @@ const FALLBACK_REPLACEMENTS: ReadonlyArray<readonly [RegExp, string]> = [
   [/Max:/gi, 'Máx:']
 ] as const;
 
-/**
- * Translates configuration descriptions from English to Spanish.
- * Returns Spanish descriptions from dictionary or performs regex fallback translations.
- *
- * @param key - The configuration key
- * @param englishDesc - The parsed English description (if any)
- * @returns Spanish translated description
- */
 export const translateDescription = (key: string, englishDesc: string): string => {
-  const dict = CLIENT_STRINGS.DICTIONARY as Record<string, string>;
-
-  if (dict[key]) {
-    return dict[key];
+  const translated = translate(`dictionary.${key}`);
+  if (translated && translated !== `dictionary.${key}`) {
+    return translated;
   }
 
   if (!englishDesc) return '';

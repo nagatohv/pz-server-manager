@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
+import '../i18n/index.js';
 import { Header } from '../components/organisms/Header.js';
 import { LoginForm } from '../components/organisms/LoginForm.js';
 import { ConsolePanel } from '../components/organisms/ConsolePanel.js';
@@ -23,9 +24,10 @@ describe('Organisms Components Tests', () => {
     const handleLogout = vi.fn();
     render(<Header onLogout={handleLogout} />);
 
-    expect(screen.getByText(/PZ Server Manager/i)).toBeDefined();
+    expect(screen.getByRole('heading', { level: 1 })).toBeDefined();
 
-    fireEvent.click(screen.getByText(/Salir/i));
+    const logoutBtn = screen.getByRole('button', { name: /Log Out|Cerrar Sesión|Salir/i });
+    fireEvent.click(logoutBtn);
     expect(handleLogout).toHaveBeenCalled();
   });
 
@@ -33,10 +35,10 @@ describe('Organisms Components Tests', () => {
     const handleLogin = vi.fn().mockResolvedValue(undefined);
     render(<LoginForm onLogin={handleLogin} />);
 
-    const input = screen.getByPlaceholderText(/Contraseña de administración/i);
+    const input = screen.getByPlaceholderText(/contraseña|password/i);
     fireEvent.change(input, { target: { value: 'secret' } });
 
-    const submitBtn = screen.getByRole('button', { name: /Iniciar Sesión/i });
+    const submitBtn = screen.getByRole('button', { name: /iniciar sesión|log in/i });
     fireEvent.click(submitBtn);
 
     expect(handleLogin).toHaveBeenCalledWith('secret');
@@ -72,9 +74,9 @@ describe('Organisms Components Tests', () => {
     expect(screen.getByText('Log line 1')).toBeDefined();
     expect(screen.getByText('Log line 2')).toBeDefined();
 
-    const cmdInput = screen.getByPlaceholderText(/Escriba un comando RCON/i);
+    const cmdInput = screen.getByPlaceholderText(/Escribe.*comando RCON|Type an RCON command/i);
     fireEvent.change(cmdInput, { target: { value: 'help' } });
-    fireEvent.click(screen.getByText('Enviar'));
+    fireEvent.click(screen.getByText(/Enviar|Send/i));
 
     expect(handleSendCommand).toHaveBeenCalledWith('help');
   });
@@ -115,12 +117,12 @@ describe('Organisms Components Tests', () => {
 
     expect(screen.getByText('Hydrocraft')).toBeDefined();
 
-    const modInput = screen.getByPlaceholderText(/ej: Hydrocraft/i);
-    const workshopInput = screen.getByPlaceholderText(/ej: 514493422/i);
+    const modInput = screen.getByPlaceholderText(/ModNameID|Hydrocraft/i);
+    const workshopInput = screen.getByPlaceholderText(/123456789|514493422/i);
 
     fireEvent.change(modInput, { target: { value: 'CheatMenu' } });
     fireEvent.change(workshopInput, { target: { value: '99999' } });
-    fireEvent.click(screen.getByText(/Agregar a la Lista/i));
+    fireEvent.click(screen.getByRole('button', { name: /Agregar Mod|Add Mod/i }));
 
     expect(handleAddMod).toHaveBeenCalledWith('CheatMenu', '99999');
   });
@@ -178,7 +180,7 @@ describe('Organisms Components Tests', () => {
         onMigrateInstance={vi.fn() as any}
       />
     );
-    expect(screen.getByText(/Servidores de Project Zomboid/i)).toBeDefined();
+    expect(screen.getByRole('heading', { level: 2 })).toBeDefined();
   });
 
   it('should render EditorPanel for INI, Sandbox and Spawn modes', () => {
@@ -227,6 +229,111 @@ describe('Organisms Components Tests', () => {
     );
 
     expect(screen.getByText('Muldraugh')).toBeDefined();
+  });
+
+  it('filters INI settings by the search field', () => {
+    const baseProps = {
+      editorMode: EditorMode.Gui,
+      rawConfigText: '',
+      onTypeChange: vi.fn(),
+      onModeChange: vi.fn(),
+      onRawTextChange: vi.fn(),
+      onUpdateSandboxValue: vi.fn(),
+      onToggleSpawnRegion: vi.fn(),
+      onRemoveSpawnRegion: vi.fn(),
+      onSave: vi.fn(),
+      savedMessage: ''
+    };
+
+    render(
+      <EditorPanel
+        {...baseProps}
+        editorType={EditorType.Ini}
+        parsedConfigData={[
+          { key: 'PVP', value: 'true', description: 'Player vs Player' },
+          { key: 'Port', value: '16261', description: 'Game port' },
+          { key: 'MaxPlayers', value: '16', description: 'Max players' }
+        ]}
+      />
+    );
+
+    expect(screen.getByText('PVP')).toBeDefined();
+    expect(screen.getByText('Port')).toBeDefined();
+    expect(screen.getByText('MaxPlayers')).toBeDefined();
+
+    const search = screen.getByPlaceholderText(/buscar parámetros|search settings/i);
+    fireEvent.change(search, { target: { value: 'port' } });
+
+    expect(screen.queryByText('PVP')).toBeNull();
+    expect(screen.getByText('Port')).toBeDefined();
+    expect(screen.queryByText('MaxPlayers')).toBeNull();
+  });
+
+  it('filters Sandbox categories by the search field', () => {
+    const baseProps = {
+      editorMode: EditorMode.Gui,
+      rawConfigText: '',
+      onTypeChange: vi.fn(),
+      onModeChange: vi.fn(),
+      onRawTextChange: vi.fn(),
+      onUpdateSandboxValue: vi.fn(),
+      onToggleSpawnRegion: vi.fn(),
+      onRemoveSpawnRegion: vi.fn(),
+      onSave: vi.fn(),
+      savedMessage: ''
+    };
+
+    render(
+      <EditorPanel
+        {...baseProps}
+        editorType={EditorType.Sandbox}
+        parsedConfigData={{
+          values: {
+            ZombieConfig: { Speed: 2, Strength: 3 },
+            VehicleConfig: { CarSpawnRate: 0.5 }
+          },
+          optionsMeta: {}
+        }}
+      />
+    );
+
+    expect(screen.getByText(/ZombieConfig/i)).toBeDefined();
+    expect(screen.getByText(/VehicleConfig/i)).toBeDefined();
+
+    const search = screen.getByPlaceholderText(/buscar por categoría|search by category/i);
+    fireEvent.change(search, { target: { value: 'vehicle' } });
+
+    expect(screen.queryByText(/ZombieConfig/i)).toBeNull();
+    expect(screen.getByText(/VehicleConfig/i)).toBeDefined();
+  });
+
+  it('shows the no-matches message when no settings match the search', () => {
+    const baseProps = {
+      editorMode: EditorMode.Gui,
+      rawConfigText: '',
+      onTypeChange: vi.fn(),
+      onModeChange: vi.fn(),
+      onRawTextChange: vi.fn(),
+      onUpdateSandboxValue: vi.fn(),
+      onToggleSpawnRegion: vi.fn(),
+      onRemoveSpawnRegion: vi.fn(),
+      onSave: vi.fn(),
+      savedMessage: ''
+    };
+
+    render(
+      <EditorPanel
+        {...baseProps}
+        editorType={EditorType.Ini}
+        parsedConfigData={[{ key: 'PVP', value: 'true', description: '' }]}
+      />
+    );
+
+    const search = screen.getByPlaceholderText(/buscar parámetros|search settings/i);
+    fireEvent.change(search, { target: { value: 'xyz_nothing' } });
+
+    expect(screen.getByTestId('editor-no-matches')).toBeDefined();
+    expect(screen.queryByText('PVP')).toBeNull();
   });
 
   it('should render BackupsPanel with backup items and trigger callbacks', () => {

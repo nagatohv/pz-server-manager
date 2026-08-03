@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { ApiService } from '../services/apiService.js';
+import { translate } from '../utils/i18n.js';
 import { ENV } from '../config/env.js';
 import {
   BranchInfo,
@@ -17,7 +18,6 @@ import {
   WS_PATH,
   WS_RECONNECT_DELAY_MS
 } from '../config/constants.js';
-import { CLIENT_STRINGS } from '../config/strings.js';
 
 const DEFAULT_STATUS: ServerStatusPayload = {
   status: ServerStatus.Stopped,
@@ -26,8 +26,12 @@ const DEFAULT_STATUS: ServerStatusPayload = {
   idleShutdown: { minutes: 0, active: false, remainingSeconds: 0 }
 };
 
-const isAuthError = (message: string): boolean =>
-  message.includes('expirada') || message.includes('autorizada');
+const isAuthError = (message: string): boolean => {
+  const translated = translate('auth.sessionExpired').toLowerCase();
+  const keywords = translated.split(/\s+/).filter((w) => w.length > 4);
+  const lower = message.toLowerCase();
+  return keywords.some((keyword) => lower.includes(keyword));
+};
 
 const buildWebSocketUrl = (token: string): string => {
   if (ENV.WS_URL) {
@@ -75,7 +79,7 @@ export function useServerStatus(
       const snapshot = await ApiService.getBranchCatalogSnapshot(t);
       applyBranchSnapshot(snapshot);
     } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : CLIENT_STRINGS.ERRORS.REQUEST_FAILED;
+      const message = e instanceof Error ? e.message : translate('common.requestFailed');
       setAvailableBranches([]);
       setBranchesError(message);
       setBranchesState('error');
@@ -148,7 +152,6 @@ export function useServerStatus(
     };
   }, [token, fetchStatus, fetchBranches, connectWebSocket]);
 
-  // Reloj en tiempo real para el apagado automático por inactividad
   useEffect(() => {
     let timer: NodeJS.Timeout | null = null;
     if (status.idleShutdown?.active && status.idleShutdown.remainingSeconds > 0) {
@@ -181,7 +184,7 @@ export function useServerStatus(
         await ApiService.executeControlAction(t, action, branch);
         await fetchStatus();
       } catch (e: unknown) {
-        const msg = e instanceof Error ? e.message : CLIENT_STRINGS.ERRORS.UNKNOWN_ERROR;
+        const msg = e instanceof Error ? e.message : translate('common.unknownError');
         if (onError) {
           onError(msg);
         }

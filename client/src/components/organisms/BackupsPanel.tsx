@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '../atoms/Button.js';
 import { Input } from '../atoms/Input.js';
 import { DatabaseIcon, RefreshIcon, TrashIcon, RestartIcon } from '../atoms/Icon.js';
 import { useModal } from '../../hooks/useModal.js';
 import { AlertModal } from '../molecules/AlertModal.js';
-import { CLIENT_STRINGS } from '../../config/strings.js';
 import { ButtonVariant, type PzBackup } from '../../types.js';
 
 interface BackupsPanelProps {
@@ -32,6 +32,7 @@ export const BackupsPanel: React.FC<BackupsPanelProps> = ({
   onRestore,
   onDelete
 }) => {
+  const { t } = useTranslation();
   const modal = useModal();
   const [noteInput, setNoteInput] = useState('');
   const [creating, setCreating] = useState(false);
@@ -78,17 +79,17 @@ export const BackupsPanel: React.FC<BackupsPanelProps> = ({
     if (creating) return;
     setCreating(true);
     setFeedback(null);
-    const stopSim = startProgressSimulation('Generando Respaldo...');
+    const stopSim = startProgressSimulation(t('backups.creating'));
     try {
       await onCreate(noteInput);
       setNoteInput('');
-      setFeedback('Respaldo generado con éxito.');
+      setFeedback(t('backups.feedbackCreateOk'));
       stopSim();
       await endProgressSimulation();
     } catch (err: unknown) {
       stopSim();
       setProgressVisible(false);
-      setFeedback(err instanceof Error ? err.message : 'Error al crear el respaldo.');
+      setFeedback(err instanceof Error ? err.message : t('backups.errorCreate'));
     } finally {
       setCreating(false);
     }
@@ -96,21 +97,21 @@ export const BackupsPanel: React.FC<BackupsPanelProps> = ({
 
   const handleRestore = (backup: PzBackup) => {
     modal.showConfirm({
-      title: CLIENT_STRINGS.BACKUPS.CONFIRM_RESTORE_TITLE,
-      message: CLIENT_STRINGS.BACKUPS.CONFIRM_RESTORE_MSG.replace('{name}', backup.note || backup.name),
-      confirmText: CLIENT_STRINGS.BACKUPS.RESTORE_BTN,
+      title: t('backups.confirmRestoreTitle'),
+      message: t('backups.confirmRestoreMsg', { name: backup.note || backup.name }),
+      confirmText: t('backups.restoreBtn'),
       onConfirm: async () => {
         setFeedback(null);
-        const stopSim = startProgressSimulation('Restaurando Respaldo...');
+        const stopSim = startProgressSimulation(t('backups.creating'));
         try {
           await onRestore(backup.id);
-          setFeedback(`Respaldo "${backup.name}" restaurado con éxito.`);
+          setFeedback(t('backups.feedbackRestoreOk', { name: backup.name }));
           stopSim();
           await endProgressSimulation();
         } catch (err: unknown) {
           stopSim();
           setProgressVisible(false);
-          setFeedback(err instanceof Error ? err.message : 'Error al restaurar respaldo.');
+          setFeedback(err instanceof Error ? err.message : t('backups.errorRestore'));
         }
       }
     });
@@ -118,21 +119,21 @@ export const BackupsPanel: React.FC<BackupsPanelProps> = ({
 
   const handleDelete = (backup: PzBackup) => {
     modal.showConfirm({
-      title: CLIENT_STRINGS.BACKUPS.CONFIRM_DELETE_TITLE,
-      message: CLIENT_STRINGS.BACKUPS.CONFIRM_DELETE_MSG.replace('{name}', backup.note || backup.name),
-      confirmText: CLIENT_STRINGS.BACKUPS.DELETE_BTN,
+      title: t('backups.confirmDeleteTitle'),
+      message: t('backups.confirmDeleteMsg', { name: backup.note || backup.name }),
+      confirmText: t('common.delete'),
       onConfirm: async () => {
         setFeedback(null);
-        const stopSim = startProgressSimulation('Eliminando Respaldo...');
+        const stopSim = startProgressSimulation(t('backups.creating'));
         try {
           await onDelete(backup.id);
-          setFeedback(`Respaldo "${backup.name}" eliminado.`);
+          setFeedback(t('backups.feedbackDeleteOk', { name: backup.name }));
           stopSim();
           await endProgressSimulation();
         } catch (err: unknown) {
           stopSim();
           setProgressVisible(false);
-          setFeedback(err instanceof Error ? err.message : 'Error al eliminar respaldo.');
+          setFeedback(err instanceof Error ? err.message : t('backups.errorDelete'));
         }
       }
     });
@@ -143,9 +144,9 @@ export const BackupsPanel: React.FC<BackupsPanelProps> = ({
       <header className="panel-header">
         <div className="panel-header__title">
           <h3>
-            <DatabaseIcon /> {CLIENT_STRINGS.BACKUPS.TITLE}
+            <DatabaseIcon /> {t('backups.title')}
           </h3>
-          <p className="panel-header__subtitle">{CLIENT_STRINGS.BACKUPS.SUBTITLE}</p>
+          <p className="panel-header__subtitle">{t('backups.subtitle')}</p>
         </div>
         <Button
           type="button"
@@ -153,9 +154,9 @@ export const BackupsPanel: React.FC<BackupsPanelProps> = ({
           onClick={onRefresh}
           disabled={loading}
           className="btn-sm"
-          title="Actualizar lista de respaldos"
+          title={t('backups.refreshBtn')}
         >
-          <RefreshIcon /> Actualizar
+          <RefreshIcon /> {t('backups.refreshBtn')}
         </Button>
       </header>
 
@@ -181,8 +182,8 @@ export const BackupsPanel: React.FC<BackupsPanelProps> = ({
         <div className="form-row align-end">
           <Input
             name="note"
-            label={CLIENT_STRINGS.BACKUPS.NOTE_LABEL}
-            placeholder={CLIENT_STRINGS.BACKUPS.NOTE_PLACEHOLDER}
+            label={t('backups.noteLabel')}
+            placeholder={t('backups.notePlaceholder')}
             value={noteInput}
             onChange={(e) => setNoteInput(e.target.value)}
             disabled={creating || loading}
@@ -193,7 +194,7 @@ export const BackupsPanel: React.FC<BackupsPanelProps> = ({
             disabled={creating || loading}
             data-action="create-backup"
           >
-            <DatabaseIcon /> {creating ? 'Generando Respaldo...' : CLIENT_STRINGS.BACKUPS.CREATE_BTN}
+            <DatabaseIcon /> {creating ? t('backups.creating') : t('backups.createBtn')}
           </Button>
         </div>
       </form>
@@ -201,19 +202,19 @@ export const BackupsPanel: React.FC<BackupsPanelProps> = ({
       <div className="backups-list-container">
         {backups.length === 0 ? (
           <div className="empty-state">
-            <h4>{CLIENT_STRINGS.BACKUPS.EMPTY_TITLE}</h4>
-            <p>{CLIENT_STRINGS.BACKUPS.EMPTY_DESC}</p>
+            <h4>{t('backups.emptyTitle')}</h4>
+            <p>{t('backups.emptyDesc')}</p>
           </div>
         ) : (
           <div className="table-responsive">
             <table className="table backups-table">
               <thead>
                 <tr>
-                  <th>{CLIENT_STRINGS.BACKUPS.COL_NAME}</th>
-                  <th>{CLIENT_STRINGS.BACKUPS.COL_DATE}</th>
-                  <th>{CLIENT_STRINGS.BACKUPS.COL_NOTE}</th>
-                  <th>{CLIENT_STRINGS.BACKUPS.COL_SIZE}</th>
-                  <th className="text-right">{CLIENT_STRINGS.BACKUPS.COL_ACTIONS}</th>
+                  <th>{t('backups.colName')}</th>
+                  <th>{t('backups.colDate')}</th>
+                  <th>{t('backups.colNote')}</th>
+                  <th>{t('backups.colSize')}</th>
+                  <th className="text-right">{t('backups.colActions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -221,7 +222,7 @@ export const BackupsPanel: React.FC<BackupsPanelProps> = ({
                   <tr key={backup.id}>
                     <td className="font-mono text-cyan">{backup.id}</td>
                     <td>{new Date(backup.createdAt).toLocaleString()}</td>
-                    <td>{backup.note || <span className="text-muted">— Sin nota —</span>}</td>
+                    <td>{backup.note || <span className="text-muted">{t('backups.noNote')}</span>}</td>
                     <td className="font-mono">{formatBytes(backup.sizeBytes)}</td>
                     <td className="text-right actions-cell">
                       <Button
@@ -230,9 +231,9 @@ export const BackupsPanel: React.FC<BackupsPanelProps> = ({
                         onClick={() => handleRestore(backup)}
                         disabled={loading}
                         className="btn-sm"
-                        title="Restaurar partida y configuraciones de este respaldo"
+                        title={t('backups.restoreBtn')}
                       >
-                        <RestartIcon /> {CLIENT_STRINGS.BACKUPS.RESTORE_BTN}
+                        <RestartIcon /> {t('backups.restoreBtn')}
                       </Button>
                       <Button
                         type="button"
@@ -240,9 +241,9 @@ export const BackupsPanel: React.FC<BackupsPanelProps> = ({
                         onClick={() => handleDelete(backup)}
                         disabled={loading}
                         className="btn-sm"
-                        title="Eliminar este respaldo"
+                        title={t('common.delete')}
                       >
-                        <TrashIcon /> {CLIENT_STRINGS.BACKUPS.DELETE_BTN}
+                        <TrashIcon /> {t('common.delete')}
                       </Button>
                     </td>
                   </tr>

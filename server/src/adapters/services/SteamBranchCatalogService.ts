@@ -5,6 +5,8 @@ import IBranchCatalogService, {
   BranchCatalogSnapshot,
   BranchCatalogSubscriber
 } from '../../domain/ports/IBranchCatalogService.js';
+import { AppError } from '../../domain/AppError.js';
+import { ERROR_CODES } from '../../config/errorCodes.js';
 import { SERVER_CONSTANTS } from '../../config/constants.js';
 import { SERVER_STRINGS } from '../../config/strings.js';
 import type { BranchInfo, ISystemConfig } from '../../types.js';
@@ -179,7 +181,11 @@ class SteamBranchCatalogService implements IBranchCatalogService {
   private async runFetch(): Promise<void> {
     const steamCmdPath = path.join(this.steamCmdDir, 'steamcmd.sh');
     if (!fs.existsSync(steamCmdPath)) {
-      throw new Error(SERVER_STRINGS.ERR_STEAMCMD_NOT_FOUND.replace('{path}', steamCmdPath));
+      throw new AppError(
+        ERROR_CODES.ERR_STEAMCMD_NOT_FOUND,
+        SERVER_STRINGS.ERR_STEAMCMD_NOT_FOUND.replace('{path}', steamCmdPath),
+        { path: steamCmdPath }
+      );
     }
     this.log(SERVER_STRINGS.MSG_BRANCHES_DISCOVERY_STARTED.replace('{appId}', SERVER_CONSTANTS.STEAM_APP_ID));
     const stdout = await this.runSteamCmd(steamCmdPath);
@@ -203,7 +209,11 @@ class SteamBranchCatalogService implements IBranchCatalogService {
       const errorMsg = `${SERVER_STRINGS.ERR_STEAMCMD_BRANCH_DISCOVERY_EMPTY
         .replace('{appId}', SERVER_CONSTANTS.STEAM_APP_ID)} (topLevelKeys=[${topLevelKeys.join(',')}])`;
       this.log(`[Manager] Diagnóstico: ${errorMsg}`);
-      throw new Error(errorMsg);
+      throw new AppError(
+        ERROR_CODES.ERR_STEAMCMD_BRANCH_DISCOVERY_EMPTY,
+        errorMsg,
+        { appId: SERVER_CONSTANTS.STEAM_APP_ID }
+      );
     }
     const classified = this.classifier.classifyAll(rawBranches);
     const ordered = this.classifier.sort(classified);
@@ -215,10 +225,15 @@ class SteamBranchCatalogService implements IBranchCatalogService {
     try {
       return parseVdf(stdout);
     } catch (err: unknown) {
+      if (err instanceof AppError) throw err;
       const message = err instanceof VdfParseError
         ? err.message
         : err instanceof Error ? err.message : String(err);
-      throw new Error(SERVER_STRINGS.ERR_VDF_PARSE_FAILED.replace('{message}', message));
+      throw new AppError(
+        ERROR_CODES.ERR_VDF_PARSE_FAILED,
+        SERVER_STRINGS.ERR_VDF_PARSE_FAILED.replace('{message}', message),
+        { message }
+      );
     }
   }
 
@@ -254,9 +269,11 @@ class SteamBranchCatalogService implements IBranchCatalogService {
 
       const timeout = setTimeout(() => {
         child.kill('SIGKILL');
-        reject(new Error(
-          SERVER_STRINGS.ERR_STEAMCMD_BRANCH_DISCOVERY_TIMEOUT
-            .replace('{seconds}', String(Math.round(SERVER_CONSTANTS.STEAMCMD_BRANCH_DISCOVERY_TIMEOUT_MS / 1000)))
+        const seconds = Math.round(SERVER_CONSTANTS.STEAMCMD_BRANCH_DISCOVERY_TIMEOUT_MS / 1000);
+        reject(new AppError(
+          ERROR_CODES.ERR_STEAMCMD_BRANCH_DISCOVERY_TIMEOUT,
+          SERVER_STRINGS.ERR_STEAMCMD_BRANCH_DISCOVERY_TIMEOUT.replace('{seconds}', String(seconds)),
+          { seconds }
         ));
       }, SERVER_CONSTANTS.STEAMCMD_BRANCH_DISCOVERY_TIMEOUT_MS);
 
@@ -277,8 +294,10 @@ class SteamBranchCatalogService implements IBranchCatalogService {
 
       child.on('error', (err: Error) => {
         clearTimeout(timeout);
-        reject(new Error(
-          SERVER_STRINGS.ERR_STEAMCMD_BRANCH_DISCOVERY_FAILED.replace('{message}', err.message)
+        reject(new AppError(
+          ERROR_CODES.ERR_STEAMCMD_BRANCH_DISCOVERY_FAILED,
+          SERVER_STRINGS.ERR_STEAMCMD_BRANCH_DISCOVERY_FAILED.replace('{message}', err.message),
+          { message: err.message }
         ));
       });
 
@@ -288,8 +307,10 @@ class SteamBranchCatalogService implements IBranchCatalogService {
         if (stderrTail.trim().length > 0) this.log(`[SteamCMD:stderr] ${stderrTail}`);
         if (code !== 0) {
           const detail = stderr.trim() || `código de salida ${code}`;
-          reject(new Error(
-            SERVER_STRINGS.ERR_STEAMCMD_BRANCH_DISCOVERY_FAILED.replace('{message}', detail)
+          reject(new AppError(
+            ERROR_CODES.ERR_STEAMCMD_BRANCH_DISCOVERY_FAILED,
+            SERVER_STRINGS.ERR_STEAMCMD_BRANCH_DISCOVERY_FAILED.replace('{message}', detail),
+            { message: detail }
           ));
           return;
         }

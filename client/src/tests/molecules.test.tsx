@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
+import '../i18n/index.js';
 import { StatusWidget } from '../components/molecules/StatusWidget.js';
 import { NavTabs } from '../components/molecules/NavTabs.js';
 import { ControlBar } from '../components/molecules/ControlBar.js';
@@ -119,11 +120,11 @@ describe('Molecules Components Tests', () => {
       />
     );
 
-    const startBtn = screen.getByText(/Iniciar Servidor/i);
+    const startBtn = screen.getByText(/iniciar servidor|start server/i);
     fireEvent.click(startBtn);
     expect(handleStart).toHaveBeenCalled();
 
-    const serverSelect = screen.getByRole('combobox', { name: /active server selector/i });
+    const serverSelect = screen.getByRole('combobox', { name: /active server selector|selector de servidor activo/i });
     expect(serverSelect).toBeDefined();
   });
 

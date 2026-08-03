@@ -1,5 +1,8 @@
 /**
- * Global User-facing and log Strings for the Project Zomboid Server Portal backend.
+ * Backend Spanish log messages.
+ * These strings are emitted to server logs and used as fallback messages in API responses.
+ * For user-facing UI text, see the client i18n locale files; API responses also include
+ * a `code` field that the client uses to look up the translated message.
  */
 export const SERVER_STRINGS = {
   ERR_PASSWORD_REQUIRED: 'Contraseña requerida',
@@ -28,7 +31,7 @@ export const SERVER_STRINGS = {
   ERR_PATH_TRAVERSAL_DETECTED: 'Intento de Path Traversal bloqueado.',
   ERR_READ_FILE_FAILED: 'Error al leer archivo {type}: {message}',
   ERR_SAVE_FILE_FAILED: 'Error al guardar archivo {type}: {message}',
-  
+
   MSG_STARTING_SERVER: '[Manager] Iniciando el servidor de Project Zomboid...',
   MSG_SERVER_ONLINE: '[Manager] El servidor de Project Zomboid está en línea y listo para recibir conexiones.',
   MSG_SERVER_EXIT: '[Manager] El proceso del juego finalizó. Código: {code}, Señal: {signal}',
@@ -58,7 +61,6 @@ export const SERVER_STRINGS = {
   MSG_JVM_CONFIGURED: '[Manager] Ajustes configurados: Min={min}GB, Max={max}GB, Idioma={lang}',
   MSG_PORTAL_RUNNING: '[PZ Web Portal] Corriendo bajo Clean Architecture en http://{host}:{port}',
 
-  // Express route messages
   MSG_ACTION_START: 'Servidor iniciándose...',
   MSG_ACTION_STOP: 'Deteniendo servidor de forma segura...',
   MSG_ACTION_RESTART: 'Reiniciando el servidor de forma segura...',
@@ -70,7 +72,6 @@ export const SERVER_STRINGS = {
   ERR_UNSUPPORTED_GUI_TYPE: 'Tipo de archivo no soportado para análisis GUI',
   ERR_UNSUPPORTED_SERIALIZE_TYPE: 'Tipo de archivo no soportado para serialización GUI',
 
-  // Instance management
   ERR_INSTANCE_NAME_REQUIRED: 'El nombre de la instancia es obligatorio',
   ERR_INSTANCE_BRANCH_REQUIRED: 'La rama de Steam es obligatoria',
   ERR_INSTANCE_NAME_TAKEN: 'Ya existe una instancia con el nombre "{name}"',
@@ -85,7 +86,6 @@ export const SERVER_STRINGS = {
   ERR_INSTANCE_MIGRATE_FAILED: 'No se pudo migrar la instancia: {message}',
   ERR_INSTANCE_DATA_DIR_NOT_FOUND: 'La instancia origen no tiene directorio de datos para migrar',
 
-  // Backup management
   ERR_BACKUP_NOT_FOUND: 'No se encontró el respaldo "{id}"',
   ERR_BACKUP_RESTORE_RUNNING: 'Detén la instancia antes de restaurar un respaldo para evitar corrupción de datos',
   ERR_BACKUP_CREATE_FAILED: 'No se pudo crear el respaldo: {message}',
@@ -102,4 +102,4 @@ export const SERVER_STRINGS = {
   MSG_BACKUP_CREATED: '[Backup] Respaldo "{name}" creado para el servidor "{instance}"',
   MSG_BACKUP_RESTORED: '[Backup] Respaldo "{name}" restaurado con éxito en el servidor "{instance}"',
   MSG_BACKUP_DELETED: '[Backup] Respaldo "{name}" eliminado'
-};
+} as const;

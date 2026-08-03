@@ -1,5 +1,5 @@
 import React from 'react';
-import { CLIENT_STRINGS } from '../../config/strings.js';
+import { useTranslation } from 'react-i18next';
 import { BoundedOptionMeta } from '../../types.js';
 
 interface GuiCardProps {
@@ -23,6 +23,8 @@ export const GuiCard: React.FC<GuiCardProps> = ({
   description,
   boundedOption
 }) => {
+  const { t } = useTranslation();
+
   const renderField = (): React.ReactNode => {
     if (isBooleanValue(value)) {
       const boolVal = toBooleanValue(value);
@@ -33,8 +35,8 @@ export const GuiCard: React.FC<GuiCardProps> = ({
           onChange={(e) => onChange(e.target.value === 'true')}
           aria-label={itemKey}
         >
-          <option value="true">{CLIENT_STRINGS.GUI_CARD.BOOLEAN_TRUE}</option>
-          <option value="false">{CLIENT_STRINGS.GUI_CARD.BOOLEAN_FALSE}</option>
+          <option value="true">{t('editor.booleanTrue')}</option>
+          <option value="false">{t('editor.booleanFalse')}</option>
         </select>
       );
     }

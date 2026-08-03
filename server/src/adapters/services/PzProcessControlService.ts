@@ -3,6 +3,8 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import IServerControlService from '../../domain/ports/IServerControlService.js';
+import { AppError } from '../../domain/AppError.js';
+import { ERROR_CODES } from '../../config/errorCodes.js';
 import { SERVER_STRINGS } from '../../config/strings.js';
 import { SERVER_CONSTANTS } from '../../config/constants.js';
 import {
@@ -339,12 +341,12 @@ class PzProcessControlService implements IServerControlService {
 
   startServer(): ControlResult {
     if (ACTIVE_STATUSES.has(this.pzStatus)) {
-      return { error: SERVER_STRINGS.ERR_SERVER_ALREADY_RUNNING };
+      return { error: SERVER_STRINGS.ERR_SERVER_ALREADY_RUNNING, code: ERROR_CODES.ERR_SERVER_ALREADY_RUNNING };
     }
 
     const scriptPath = path.join(this.systemConfig.PZ_SERVER_DIR, SERVER_CONSTANTS.PATH_START_SCRIPT);
     if (!fs.existsSync(scriptPath)) {
-      return { error: SERVER_STRINGS.ERR_START_SCRIPT_NOT_FOUND.replace('{path}', scriptPath) };
+      return { error: SERVER_STRINGS.ERR_START_SCRIPT_NOT_FOUND.replace('{path}', scriptPath), code: ERROR_CODES.ERR_START_SCRIPT_NOT_FOUND };
     }
 
     this.pzStatus = ServerStatus.Starting;
@@ -364,7 +366,7 @@ class PzProcessControlService implements IServerControlService {
 
     const binaryPath = path.join(this.systemConfig.PZ_SERVER_DIR, SERVER_CONSTANTS.PATH_BINARY_PZ);
     if (!fs.existsSync(binaryPath)) {
-      return { error: SERVER_STRINGS.ERR_BINARY_NOT_FOUND.replace('{path}', binaryPath) };
+      return { error: SERVER_STRINGS.ERR_BINARY_NOT_FOUND.replace('{path}', binaryPath), code: ERROR_CODES.ERR_BINARY_NOT_FOUND };
     }
 
     const env = {
@@ -470,10 +472,10 @@ class PzProcessControlService implements IServerControlService {
 
   stopServer(): ControlResult {
     if (INACTIVE_STATUSES.has(this.pzStatus)) {
-      return { error: SERVER_STRINGS.ERR_SERVER_ALREADY_STOPPED };
+      return { error: SERVER_STRINGS.ERR_SERVER_ALREADY_STOPPED, code: ERROR_CODES.ERR_SERVER_ALREADY_STOPPED };
     }
     if (this.pzStatus === ServerStatus.Updating) {
-      return { error: SERVER_STRINGS.ERR_STOP_WHILE_UPDATING };
+      return { error: SERVER_STRINGS.ERR_STOP_WHILE_UPDATING, code: ERROR_CODES.ERR_STOP_WHILE_UPDATING };
     }
 
     this.appendLog(SERVER_STRINGS.MSG_STOPPING_SERVER);
@@ -545,7 +547,7 @@ class PzProcessControlService implements IServerControlService {
   killServer(): ControlResult {
     const javaPid = this.findZomboidPid();
     if (!this.pzProcess && !javaPid) {
-      return { error: SERVER_STRINGS.ERR_NO_ACTIVE_PROCESS };
+      return { error: SERVER_STRINGS.ERR_NO_ACTIVE_PROCESS, code: ERROR_CODES.ERR_NO_ACTIVE_PROCESS };
     }
 
     this.appendLog(SERVER_STRINGS.MSG_FORCE_STOP_SIGKILL);
@@ -579,7 +581,7 @@ class PzProcessControlService implements IServerControlService {
 
   updateGame(requestedBranch: string): ControlResult {
     if (ACTIVE_STATUSES.has(this.pzStatus)) {
-      return { error: SERVER_STRINGS.ERR_UPDATE_WHILE_RUNNING };
+      return { error: SERVER_STRINGS.ERR_UPDATE_WHILE_RUNNING, code: ERROR_CODES.ERR_UPDATE_WHILE_RUNNING };
     }
 
     this.pzStatus = ServerStatus.Updating;
@@ -592,7 +594,7 @@ class PzProcessControlService implements IServerControlService {
     if (!fs.existsSync(steamCmdPath)) {
       this.pzStatus = ServerStatus.Stopped;
       this.broadcastStatus();
-      return { error: SERVER_STRINGS.ERR_STEAMCMD_NOT_FOUND.replace('{path}', steamCmdPath) };
+      return { error: SERVER_STRINGS.ERR_STEAMCMD_NOT_FOUND.replace('{path}', steamCmdPath), code: ERROR_CODES.ERR_STEAMCMD_NOT_FOUND };
     }
 
     const branch = requestedBranch !== undefined ? requestedBranch : this.systemConfig.STEAM_APP_BRANCH;
@@ -707,7 +709,7 @@ class PzProcessControlService implements IServerControlService {
 
   sendCommand(commandString: string): ControlResult {
     if (!this.pzProcess || !this.pzProcess.stdin || !COMMANDABLE_STATUSES.has(this.pzStatus)) {
-      return { error: SERVER_STRINGS.ERR_SERVER_NOT_ACTIVE_FOR_COMMANDS };
+      return { error: SERVER_STRINGS.ERR_SERVER_NOT_ACTIVE_FOR_COMMANDS, code: ERROR_CODES.ERR_SERVER_NOT_ACTIVE_FOR_COMMANDS };
     }
 
     const cleanCommand = commandString.trim();

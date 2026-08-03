@@ -57,6 +57,7 @@ export enum ConfigFileType {
 export interface ControlResult {
   success?: boolean;
   error?: string;
+  code?: string;
 }
 
 /** Shape of a single parsed INI setting. */

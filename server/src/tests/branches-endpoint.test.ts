@@ -110,6 +110,9 @@ describe('GET /api/branches endpoint', () => {
     await new Promise<void>((resolve) => server.close(() => resolve()));
 
     expect(res.status).toBe(500);
-    expect(res.body).toEqual({ error: 'catálogo no inicializado' });
+    expect(res.body).toEqual({
+      code: 'ERR_SAVE_FILE_FAILED',
+      error: 'catálogo no inicializado'
+    });
   });
 });

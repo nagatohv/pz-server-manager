@@ -4,6 +4,8 @@ import IConfigRepository from '../../domain/ports/IConfigRepository.js';
 import IniParserStrategy from '../parsers/IniParserStrategy.js';
 import SandboxParserStrategy from '../parsers/SandboxParserStrategy.js';
 import SpawnParserStrategy from '../parsers/SpawnParserStrategy.js';
+import { AppError } from '../../domain/AppError.js';
+import { ERROR_CODES } from '../../config/errorCodes.js';
 import { SERVER_STRINGS } from '../../config/strings.js';
 import { ConfigFileType } from '../../types.js';
 import type { IniSetting, PanelConfig, ISystemConfig } from '../../types.js';
@@ -13,7 +15,7 @@ const DEFAULT_PANEL_CONFIG: PanelConfig = {
   serverLanguage: 'es'
 };
 
-const DEFAULT_INI_CONTENT = `# Plantilla por defecto de Project Zomboid
+const DEFAULT_INI_CONTENT = `# Project Zomboid default settings template
 MaxPlayers=16
 PingLimit=400
 PVP=true
@@ -41,10 +43,6 @@ AntiCheatItem=4
 UsePhysicsHitReaction=false
 `;
 
-/**
- * Repository implementing IConfigRepository.
- * Manages physical read/write operations of Project Zomboid configuration files.
- */
 export default class PzConfigRepository implements IConfigRepository {
   private systemConfig: ISystemConfig;
   private iniStrategy: IniParserStrategy;
@@ -63,9 +61,6 @@ export default class PzConfigRepository implements IConfigRepository {
     this.spawnStrategy = spawnStrategy;
   }
 
-  /**
-   * Helper to resolve physical paths for different file types.
-   */
   getFilePath(type: string, overrideDataDir?: string): string | null {
     const userDir = overrideDataDir ?? this.systemConfig.ZO_USER_DIR;
     const configDir = path.join(userDir, 'Server');
@@ -98,33 +93,47 @@ export default class PzConfigRepository implements IConfigRepository {
 
   readIniSettings(overrideDataDir?: string): IniSetting[] {
     const filePath = this.getFilePath(ConfigFileType.Ini, overrideDataDir);
-    if (!filePath) throw new Error(SERVER_STRINGS.ERR_INVALID_FILE_TYPE);
+    if (!filePath) {
+      throw new AppError(ERROR_CODES.ERR_INVALID_FILE_TYPE, SERVER_STRINGS.ERR_INVALID_FILE_TYPE);
+    }
     this.ensureDefaultIni(filePath);
 
     try {
       const rawContent = fs.readFileSync(filePath, 'utf8');
       return this.iniStrategy.parse(rawContent);
     } catch (err: unknown) {
+      if (err instanceof AppError) throw err;
       const message = err instanceof Error ? err.message : String(err);
-      throw new Error(SERVER_STRINGS.ERR_READ_FILE_FAILED.replace('{type}', 'server.ini').replace('{message}', message));
+      throw new AppError(
+        ERROR_CODES.ERR_READ_FILE_FAILED,
+        SERVER_STRINGS.ERR_READ_FILE_FAILED.replace('{type}', 'server.ini').replace('{message}', message),
+        { type: 'server.ini', message }
+      );
     }
   }
 
   saveIniSettings(settingsObj: Record<string, string>, overrideDataDir?: string): { success: boolean } {
     const filePath = this.getFilePath(ConfigFileType.Ini, overrideDataDir);
-    if (!filePath) throw new Error(SERVER_STRINGS.ERR_INVALID_FILE_TYPE);
+    if (!filePath) {
+      throw new AppError(ERROR_CODES.ERR_INVALID_FILE_TYPE, SERVER_STRINGS.ERR_INVALID_FILE_TYPE);
+    }
     try {
       const rawContent = fs.existsSync(filePath) ? fs.readFileSync(filePath, 'utf8') : '';
       const updatedContent = this.iniStrategy.serialize(settingsObj, rawContent);
-      
+
       const dir = path.dirname(filePath);
       if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 
       fs.writeFileSync(filePath, updatedContent, 'utf8');
       return { success: true };
     } catch (err: unknown) {
+      if (err instanceof AppError) throw err;
       const message = err instanceof Error ? err.message : String(err);
-      throw new Error(SERVER_STRINGS.ERR_SAVE_FILE_FAILED.replace('{type}', 'server.ini').replace('{message}', message));
+      throw new AppError(
+        ERROR_CODES.ERR_SAVE_FILE_FAILED,
+        SERVER_STRINGS.ERR_SAVE_FILE_FAILED.replace('{type}', 'server.ini').replace('{message}', message),
+        { type: 'server.ini', message }
+      );
     }
   }
 
@@ -147,7 +156,9 @@ export default class PzConfigRepository implements IConfigRepository {
 
   savePanelConfig(config: PanelConfig, overrideDataDir?: string): PanelConfig {
     const filePath = this.getFilePath(ConfigFileType.Panel, overrideDataDir);
-    if (!filePath) throw new Error(SERVER_STRINGS.ERR_INVALID_FILE_TYPE);
+    if (!filePath) {
+      throw new AppError(ERROR_CODES.ERR_INVALID_FILE_TYPE, SERVER_STRINGS.ERR_INVALID_FILE_TYPE);
+    }
     try {
       const dir = path.dirname(filePath);
       if (!fs.existsSync(dir)) {
@@ -160,14 +171,21 @@ export default class PzConfigRepository implements IConfigRepository {
       fs.writeFileSync(filePath, JSON.stringify(cleanConfig, null, 2), 'utf8');
       return cleanConfig;
     } catch (err: unknown) {
+      if (err instanceof AppError) throw err;
       const message = err instanceof Error ? err.message : String(err);
-      throw new Error(SERVER_STRINGS.ERR_SAVE_FILE_FAILED.replace('{type}', 'panel_config.json').replace('{message}', message));
+      throw new AppError(
+        ERROR_CODES.ERR_SAVE_FILE_FAILED,
+        SERVER_STRINGS.ERR_SAVE_FILE_FAILED.replace('{type}', 'panel_config.json').replace('{message}', message),
+        { type: 'panel_config.json', message }
+      );
     }
   }
 
   readRawFile(type: string, overrideDataDir?: string): string {
     const filePath = this.getFilePath(type, overrideDataDir);
-    if (!filePath) throw new Error(SERVER_STRINGS.ERR_INVALID_FILE_TYPE);
+    if (!filePath) {
+      throw new AppError(ERROR_CODES.ERR_INVALID_FILE_TYPE, SERVER_STRINGS.ERR_INVALID_FILE_TYPE);
+    }
 
     if (!fs.existsSync(filePath)) {
       return '';
@@ -175,14 +193,21 @@ export default class PzConfigRepository implements IConfigRepository {
     try {
       return fs.readFileSync(filePath, 'utf8');
     } catch (err: unknown) {
+      if (err instanceof AppError) throw err;
       const message = err instanceof Error ? err.message : String(err);
-      throw new Error(SERVER_STRINGS.ERR_READ_FILE_FAILED.replace('{type}', type).replace('{message}', message));
+      throw new AppError(
+        ERROR_CODES.ERR_READ_FILE_FAILED,
+        SERVER_STRINGS.ERR_READ_FILE_FAILED.replace('{type}', type).replace('{message}', message),
+        { type, message }
+      );
     }
   }
 
   saveRawFile(type: string, content: string, overrideDataDir?: string): { success: boolean } {
     const filePath = this.getFilePath(type, overrideDataDir);
-    if (!filePath) throw new Error(SERVER_STRINGS.ERR_INVALID_FILE_TYPE);
+    if (!filePath) {
+      throw new AppError(ERROR_CODES.ERR_INVALID_FILE_TYPE, SERVER_STRINGS.ERR_INVALID_FILE_TYPE);
+    }
 
     try {
       const resolvedPath = path.resolve(filePath);
@@ -190,7 +215,10 @@ export default class PzConfigRepository implements IConfigRepository {
       const allowedDir2 = path.resolve(this.systemConfig.DATA_DIR);
 
       if (!resolvedPath.startsWith(allowedDir1) && !resolvedPath.startsWith(allowedDir2)) {
-        throw new Error(SERVER_STRINGS.ERR_PATH_TRAVERSAL_DETECTED);
+        throw new AppError(
+          ERROR_CODES.ERR_PATH_TRAVERSAL_DETECTED,
+          SERVER_STRINGS.ERR_PATH_TRAVERSAL_DETECTED
+        );
       }
 
       const dir = path.dirname(filePath);
@@ -201,8 +229,13 @@ export default class PzConfigRepository implements IConfigRepository {
       fs.writeFileSync(filePath, content, 'utf8');
       return { success: true };
     } catch (err: unknown) {
+      if (err instanceof AppError) throw err;
       const message = err instanceof Error ? err.message : String(err);
-      throw new Error(SERVER_STRINGS.ERR_SAVE_FILE_FAILED.replace('{type}', type).replace('{message}', message));
+      throw new AppError(
+        ERROR_CODES.ERR_SAVE_FILE_FAILED,
+        SERVER_STRINGS.ERR_SAVE_FILE_FAILED.replace('{type}', type).replace('{message}', message),
+        { type, message }
+      );
     }
   }
 }

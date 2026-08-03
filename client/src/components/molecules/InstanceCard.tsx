@@ -1,9 +1,9 @@
 import './InstanceCard.scss';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '../atoms/Button.js';
 import { Badge } from '../atoms/Badge.js';
 import { PlayIcon, PowerIcon, TrashIcon, SwapIcon, UpdateIcon, SettingsIcon } from '../atoms/Icon.js';
-import { CLIENT_STRINGS } from '../../config/strings.js';
 import { GAME_ID_PROJECT_ZOMBOID } from '../../config/constants.js';
 import { ButtonVariant, ServerStatus, type PzInstance, type ServerStatusPayload } from '../../types.js';
 
@@ -22,9 +22,6 @@ interface InstanceCardProps {
   onConfigure?: (id: string) => void;
 }
 
-const formatBranch = (branch: string): string =>
-  branch === '' ? CLIENT_STRINGS.SERVERS_PAGE.BRANCH_PUBLIC_DEFAULT : branch;
-
 const STATUS_CLASS_MAP: Record<ServerStatus, string> = {
   [ServerStatus.Stopped]: 'stopped',
   [ServerStatus.Starting]: 'starting',
@@ -32,19 +29,6 @@ const STATUS_CLASS_MAP: Record<ServerStatus, string> = {
   [ServerStatus.Stopping]: 'stopping',
   [ServerStatus.Updating]: 'updating',
   [ServerStatus.Crashed]: 'crashed'
-};
-
-const getStatusBadge = (isActive: boolean, activeStatus: ServerStatus): { status: string; label: string } => {
-  if (!isActive) {
-    return {
-      status: STATUS_CLASS_MAP[ServerStatus.Stopped],
-      label: CLIENT_STRINGS.STATUS.STOPPED
-    };
-  }
-  return {
-    status: STATUS_CLASS_MAP[activeStatus] || STATUS_CLASS_MAP[ServerStatus.Stopped],
-    label: CLIENT_STRINGS.STATUS[activeStatus] || CLIENT_STRINGS.STATUS.STOPPED
-  };
 };
 
 export const InstanceCard: React.FC<InstanceCardProps> = ({
@@ -61,8 +45,29 @@ export const InstanceCard: React.FC<InstanceCardProps> = ({
   onMigrate,
   onConfigure
 }) => {
+  const { t } = useTranslation();
   const activeRunning = isActive && activeStatus !== ServerStatus.Stopped && activeStatus !== ServerStatus.Crashed;
-  const statusBadge = getStatusBadge(isActive, activeStatus);
+
+  const getStatusLabel = (isActive: boolean, status: ServerStatus): string => {
+    if (!isActive) return t('common.stopped');
+    switch (status) {
+      case ServerStatus.Running: return t('common.online');
+      case ServerStatus.Starting: return t('common.starting');
+      case ServerStatus.Updating: return t('common.updating');
+      case ServerStatus.Stopping: return t('common.stopping');
+      case ServerStatus.Crashed: return t('common.crashed');
+      default: return t('common.stopped');
+    }
+  };
+
+  const statusBadge = {
+    status: isActive ? STATUS_CLASS_MAP[activeStatus] || 'stopped' : 'stopped',
+    label: getStatusLabel(isActive, activeStatus)
+  };
+
+  const gameBadge = instance.game === GAME_ID_PROJECT_ZOMBOID || !instance.game
+    ? t('servers.gameLabel')
+    : instance.game.toUpperCase();
 
   const isStartDisabled = !instance.installed || loading || (activeRunning && !isActive);
   const isUpdateDisabled = loading || (isActive && activeRunning);
@@ -85,34 +90,27 @@ export const InstanceCard: React.FC<InstanceCardProps> = ({
       <header className="instance-card__header">
         <h3 className="instance-card__name">{instance.name}</h3>
         <div className="instance-card__badges">
-          <Badge
-            status="game"
-            label={instance.game === GAME_ID_PROJECT_ZOMBOID || !instance.game
-              ? CLIENT_STRINGS.SERVERS_PAGE.CREATE_DIALOG.PROJECT_ZOMBOID
-              : instance.game}
-          />
+          <Badge status="game" label={gameBadge} />
           <Badge status={statusBadge.status} label={statusBadge.label} />
           <Badge
             status={instance.installed ? 'instalado' : STATUS_CLASS_MAP[ServerStatus.Stopped]}
-            label={instance.installed
-              ? CLIENT_STRINGS.SERVERS_PAGE.INSTALLED_BADGE
-              : CLIENT_STRINGS.SERVERS_PAGE.NOT_INSTALLED_BADGE}
+            label={instance.installed ? t('servers.installed') : t('servers.notInstalled')}
           />
         </div>
       </header>
 
       <dl className="instance-card__details">
-        <dt>{CLIENT_STRINGS.SERVERS_PAGE.BRANCH_LABEL}</dt>
-        <dd data-field="branch">{formatBranch(instance.branch)}</dd>
-        <dt>{CLIENT_STRINGS.SERVERS_PAGE.GAME_PORT_LABEL}</dt>
+        <dt>{t('servers.steamBranch')}</dt>
+        <dd data-field="branch">{instance.branch || t('servers.publicBranch')}</dd>
+        <dt>{t('servers.gamePort')}</dt>
         <dd>{instance.gamePort}</dd>
-        <dt>{CLIENT_STRINGS.SERVERS_PAGE.RCON_PORT_LABEL}</dt>
+        <dt>{t('servers.rconPort')}</dt>
         <dd>{instance.rconPort}</dd>
-        <dt>{CLIENT_STRINGS.SERVERS_PAGE.MAX_PLAYERS_LABEL}</dt>
+        <dt>{t('servers.maxPlayers')}</dt>
         <dd>{instance.maxPlayers}</dd>
         {instance.lastError && (
           <>
-            <dt>{CLIENT_STRINGS.SERVERS_PAGE.LAST_ERROR_LABEL}</dt>
+            <dt>{t('servers.lastErrorLabel')}</dt>
             <dd className="error-text" data-field="error">{instance.lastError}</dd>
           </>
         )}
@@ -121,19 +119,19 @@ export const InstanceCard: React.FC<InstanceCardProps> = ({
       {isActive && activeRunning && activeServerStatus && (
         <div className="instance-card__stats">
           <div className="instance-card__stat-item">
-            <span className="instance-card__stat-label">{CLIENT_STRINGS.STATUS_WIDGETS.ONLINE_PLAYERS_TITLE}: </span>
+            <span className="instance-card__stat-label">{t('header.players')}: </span>
             <strong className="instance-card__stat-value instance-card__stat-value--players">
               {activeServerStatus.onlinePlayers ?? 0} / {instance.maxPlayers}
             </strong>
           </div>
           <div className="instance-card__stat-item">
-            <span className="instance-card__stat-label">{CLIENT_STRINGS.STATUS_WIDGETS.CPU_USAGE_TITLE}: </span>
+            <span className="instance-card__stat-label">{t('header.cpu')}: </span>
             <strong className="instance-card__stat-value instance-card__stat-value--cpu">
               {activeServerStatus.stats?.cpu ?? 0}%
             </strong>
           </div>
           <div className="instance-card__stat-item instance-card__stat-item--span-2">
-            <span className="instance-card__stat-label">{CLIENT_STRINGS.STATUS_WIDGETS.MEMORY_USAGE_TITLE}: </span>
+            <span className="instance-card__stat-label">{t('header.ram')}: </span>
             <strong className="instance-card__stat-value instance-card__stat-value--memory">
               {activeServerStatus.stats?.memory ?? 0} MB
             </strong>
@@ -149,7 +147,7 @@ export const InstanceCard: React.FC<InstanceCardProps> = ({
             disabled={loading}
             data-action="stop-instance"
           >
-            <PowerIcon /> {CLIENT_STRINGS.SERVERS_PAGE.STOP_BTN}
+            <PowerIcon /> {t('servers.stop')}
           </Button>
         ) : (
           <Button
@@ -158,7 +156,7 @@ export const InstanceCard: React.FC<InstanceCardProps> = ({
             disabled={isStartDisabled}
             data-action="start-instance"
           >
-            <PlayIcon /> {CLIENT_STRINGS.SERVERS_PAGE.START_BTN}
+            <PlayIcon /> {t('servers.start')}
           </Button>
         )}
 
@@ -168,7 +166,7 @@ export const InstanceCard: React.FC<InstanceCardProps> = ({
           disabled={isUpdateDisabled}
           data-action="install"
         >
-          <UpdateIcon /> {instance.installed ? CLIENT_STRINGS.SERVERS_PAGE.UPDATE_BTN : CLIENT_STRINGS.SERVERS_PAGE.INSTALL_BTN}
+          <UpdateIcon /> {instance.installed ? t('servers.update') : t('servers.install')}
         </Button>
         <Button
           variant={ButtonVariant.Control}
@@ -176,7 +174,7 @@ export const InstanceCard: React.FC<InstanceCardProps> = ({
           disabled={loading}
           data-action="configure"
         >
-          <SettingsIcon /> {CLIENT_STRINGS.SERVERS_PAGE.CONFIGURE_BTN}
+          <SettingsIcon /> {t('servers.configure')}
         </Button>
         <Button
           variant={ButtonVariant.Control}
@@ -184,7 +182,7 @@ export const InstanceCard: React.FC<InstanceCardProps> = ({
           disabled={loading || activeRunning}
           data-action="migrate"
         >
-          <SwapIcon /> {CLIENT_STRINGS.SERVERS_PAGE.MIGRATE_BTN}
+          <SwapIcon /> {t('servers.migrate')}
         </Button>
         <Button
           variant={ButtonVariant.Danger}
@@ -192,7 +190,7 @@ export const InstanceCard: React.FC<InstanceCardProps> = ({
           disabled={isDeleteDisabled}
           data-action="delete"
         >
-          <TrashIcon /> {CLIENT_STRINGS.SERVERS_PAGE.DELETE_BTN}
+          <TrashIcon /> {t('common.delete')}
         </Button>
       </footer>
     </li>

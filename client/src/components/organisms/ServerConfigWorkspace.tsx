@@ -1,4 +1,5 @@
 import React, { FormEvent, useState, lazy, Suspense } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '../atoms/Button.js';
 import { FileIcon, PuzzleIcon, DatabaseIcon, TerminalIcon, TrashIcon } from '../atoms/Icon.js';
 import { ButtonVariant, BranchInfo, BranchCatalogSource, BranchLoadState, ServerStatusPayload } from '../../types.js';
@@ -12,7 +13,6 @@ const ConsolePanel = lazy(() => import('./ConsolePanel.js').then((m) => ({ defau
 import { useModal } from '../../hooks/useModal.js';
 import { AlertModal } from '../molecules/AlertModal.js';
 import { ApiService } from '../../services/apiService.js';
-import { CLIENT_STRINGS } from '../../config/strings.js';
 import { StatusWidget } from '../molecules/StatusWidget.js';
 import { IDLE_WIDGET_COLOR, PLAYERS_WIDGET_COLOR } from '../../config/constants.js';
 import { ServerStatus } from '../../types.js';
@@ -24,6 +24,23 @@ import type {
   EditorMode,
   PzInstance
 } from '../../types.js';
+
+const calcMemoryPercent = (usedMb: number, totalMb: number): number => {
+  if (!totalMb || totalMb <= 0) return 0;
+  return Math.min(100, Math.round((usedMb / totalMb) * 100));
+};
+
+const formatIdleTime = (totalSeconds: number): string => {
+  const mins = Math.floor(totalSeconds / 60);
+  const secs = totalSeconds % 60;
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+};
+
+const formatBytes = (bytes: number): string => {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
+};
 
 interface ServerConfigWorkspaceProps {
   instance: PzInstance;
@@ -70,31 +87,14 @@ interface ServerConfigWorkspaceProps {
   onRefreshBranches: () => void;
   onSendCommand: (cmd: string) => void;
   activeInstanceId: string | null;
-  onSelectInstance: (id: string) => Promise<unknown>;
+  onSelectInstance: (id: string) => void;
 }
-
-const STATUS_LABEL_MAP: Record<ServerStatus, string> = {
-  [ServerStatus.Running]: CLIENT_STRINGS.STATUS_WIDGETS.STATUS_ONLINE,
-  [ServerStatus.Stopped]: CLIENT_STRINGS.STATUS_WIDGETS.STATUS_OFFLINE,
-  [ServerStatus.Starting]: CLIENT_STRINGS.STATUS_WIDGETS.STATUS_STARTING,
-  [ServerStatus.Stopping]: CLIENT_STRINGS.STATUS_WIDGETS.STATUS_STOPPING,
-  [ServerStatus.Updating]: CLIENT_STRINGS.STATUS_WIDGETS.STATUS_UPDATING,
-  [ServerStatus.Crashed]: CLIENT_STRINGS.STATUS_WIDGETS.STATUS_CRASHED
-};
-
-const formatIdleTime = (seconds: number): string => {
-  const minutes = Math.floor(seconds / 60);
-  const remainingSeconds = seconds % 60;
-  return `${minutes}m ${remainingSeconds}s`;
-};
-
-const calcMemoryPercent = (memory: number, memoryTotal: number): number =>
-  memoryTotal > 0 ? Math.round((memory / memoryTotal) * 100) : 0;
 
 export const ServerConfigWorkspace: React.FC<ServerConfigWorkspaceProps> = ({
   instance,
-  token = null,
-  activeSubTab,
+  token,
+  activeSubTab = 'console',
+  iniSettings,
   panelConfig,
   modsList,
   editorType,
@@ -104,7 +104,9 @@ export const ServerConfigWorkspace: React.FC<ServerConfigWorkspaceProps> = ({
   savedMessage,
   onSubTabChange,
   onBackToServers,
+  onIniSettingChange,
   onPanelConfigChange,
+  onSaveSettings,
   onAddMod,
   onRemoveMod,
   onSaveMods,
@@ -115,8 +117,6 @@ export const ServerConfigWorkspace: React.FC<ServerConfigWorkspaceProps> = ({
   onToggleSpawnRegion,
   onRemoveSpawnRegion,
   onSaveEditor,
-  onIniSettingChange,
-  iniSettings,
   status,
   logs,
   selectedBranch,
@@ -135,6 +135,10 @@ export const ServerConfigWorkspace: React.FC<ServerConfigWorkspaceProps> = ({
   activeInstanceId,
   onSelectInstance
 }) => {
+  const { t } = useTranslation();
+  const modal = useModal();
+  const [cleaning, setCleaning] = useState(false);
+
   const {
     backups,
     loading: backupsLoading,
@@ -143,41 +147,29 @@ export const ServerConfigWorkspace: React.FC<ServerConfigWorkspaceProps> = ({
     createBackup,
     restoreBackup,
     deleteBackup
-  } = useBackups(token, instance.id);
-
-  const modal = useModal();
-  const [cleaning, setCleaning] = useState(false);
-
-  const formatBytes = (bytes: number): string => {
-    if (bytes === 0) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
+  } = useBackups({ token: token ?? null, instanceId: instance.id });
 
   const handleCleanup = () => {
     modal.showConfirm({
-      title: CLIENT_STRINGS.CLEANUP.CONFIRM_TITLE,
-      message: CLIENT_STRINGS.CLEANUP.CONFIRM_MSG,
-      confirmText: CLIENT_STRINGS.CLEANUP.CONFIRM_BTN,
+      title: t('cleanup.confirmTitle'),
+      message: t('cleanup.confirmMsg'),
+      confirmText: t('cleanup.confirmBtn'),
       onConfirm: async () => {
         if (!token) return;
         setCleaning(true);
         try {
           const res = await ApiService.cleanupInstance(token, instance.id);
           modal.showAlert({
-            title: CLIENT_STRINGS.CLEANUP.SUCCESS_TITLE,
-            message: CLIENT_STRINGS.CLEANUP.SUCCESS_MSG
-              .replace('{space}', formatBytes(res.bytesFreed))
-              .replace('{count}', String(res.filesRemoved))
+            type: 'success',
+            title: t('cleanup.successTitle'),
+            message: t('cleanup.successShort', { space: formatBytes(res.bytesFreed) })
           });
           refreshBackups();
         } catch (err: unknown) {
-          const msg = err instanceof Error ? err.message : CLIENT_STRINGS.CLEANUP.ERROR_DEFAULT;
+          const msg = err instanceof Error ? err.message : t('cleanup.errorDefault');
           modal.showAlert({
             type: 'error',
-            title: CLIENT_STRINGS.CLEANUP.ERROR_TITLE,
+            title: t('common.error'),
             message: msg
           });
         } finally {
@@ -194,7 +186,19 @@ export const ServerConfigWorkspace: React.FC<ServerConfigWorkspaceProps> = ({
   const memoryMb = isServerRunning ? (status.stats?.memory ?? 0) : 0;
   const memoryTotalMb = isServerRunning ? (status.stats?.memoryTotal ?? 0) : 0;
   const memoryPercent = calcMemoryPercent(memoryMb, memoryTotalMb);
-  const statusLabel = STATUS_LABEL_MAP[currentStatus] ?? CLIENT_STRINGS.STATUS_WIDGETS.STATUS_OFFLINE;
+
+  const getStatusLabel = (statusVal: ServerStatus): string => {
+    switch (statusVal) {
+      case ServerStatus.Running: return t('common.online');
+      case ServerStatus.Starting: return t('common.starting');
+      case ServerStatus.Updating: return t('common.updating');
+      case ServerStatus.Stopping: return t('common.stopping');
+      case ServerStatus.Crashed: return t('common.crashed');
+      default: return t('common.stopped');
+    }
+  };
+
+  const statusLabel = getStatusLabel(currentStatus);
   const isIdleActive = activeInstanceId === instance.id && !!status.idleShutdown?.active;
   const remainingIdleSeconds = isIdleActive ? (status.idleShutdown?.remainingSeconds ?? 0) : 0;
 
@@ -203,10 +207,10 @@ export const ServerConfigWorkspace: React.FC<ServerConfigWorkspaceProps> = ({
       <div className="server-config-workspace__header">
         <div className="server-config-workspace__title-group">
           <Button variant={ButtonVariant.Control} onClick={onBackToServers} data-action="back-to-servers">
-            &larr; Volver a Servidores
+            &larr; {t('nav.servers')}
           </Button>
           <h2 className="server-config-workspace__title">
-            Configuración de Servidor: <span>{instance.name}</span>
+            {t('nav.editor')}: <span>{instance.name}</span>
           </h2>
         </div>
 
@@ -215,10 +219,10 @@ export const ServerConfigWorkspace: React.FC<ServerConfigWorkspaceProps> = ({
             variant={ButtonVariant.Warning}
             onClick={handleCleanup}
             disabled={cleaning}
-            title={CLIENT_STRINGS.CLEANUP.BTN_TITLE}
             data-action="cleanup-disk"
+            title={t('cleanup.btnTitle')}
           >
-            <TrashIcon /> {cleaning ? CLIENT_STRINGS.CLEANUP.BTN_CLEANING : CLIENT_STRINGS.CLEANUP.BTN_CLEANUP}
+            <TrashIcon /> {cleaning ? t('cleanup.btnCleaning') : t('cleanup.btn')}
           </Button>
         </div>
 
@@ -228,61 +232,61 @@ export const ServerConfigWorkspace: React.FC<ServerConfigWorkspaceProps> = ({
             active={activeSubTab === 'console'}
             onClick={() => onSubTabChange('console')}
           >
-            <TerminalIcon /> Consola / Terminal
+            <TerminalIcon /> {t('nav.console')}
           </Button>
           <Button
             variant={ButtonVariant.Nav}
             active={activeSubTab === 'editor'}
             onClick={() => onSubTabChange('editor')}
           >
-            <FileIcon /> Editor Avanzado
+            <FileIcon /> {t('nav.editor')}
           </Button>
           <Button
             variant={ButtonVariant.Nav}
             active={activeSubTab === 'mods'}
             onClick={() => onSubTabChange('mods')}
           >
-            <PuzzleIcon /> Gestión de Mods
+            <PuzzleIcon /> {t('nav.mods')}
           </Button>
           <Button
             variant={ButtonVariant.Nav}
             active={activeSubTab === 'backups'}
             onClick={() => onSubTabChange('backups')}
           >
-            <DatabaseIcon /> Respaldos (Backups)
+            <DatabaseIcon /> {t('nav.backups')}
           </Button>
         </nav>
 
         <div className="header-status-grid server-config-workspace__status-grid-container">
           <StatusWidget
-            title={CLIENT_STRINGS.STATUS_WIDGETS.SERVER_STATUS_TITLE}
+            title={t('header.status')}
             badge={{ status: currentStatus, label: statusLabel }}
           />
 
           <StatusWidget
-            title={CLIENT_STRINGS.STATUS_WIDGETS.ONLINE_PLAYERS_TITLE}
+            title={t('header.players')}
             value={isServerRunning ? onlinePlayers : '-'}
-            subtitle={isServerRunning ? CLIENT_STRINGS.STATUS_WIDGETS.PLAYERS_CONNECTED : CLIENT_STRINGS.STATUS_WIDGETS.PLAYERS_STOPPED}
+            subtitle={isServerRunning ? t('common.online') : t('common.stopped')}
             color={PLAYERS_WIDGET_COLOR}
           />
 
           <StatusWidget
-            title={CLIENT_STRINGS.STATUS_WIDGETS.CPU_USAGE_TITLE}
+            title={t('header.cpu')}
             value={`${cpuPercent}%`}
             progress={cpuPercent}
           />
 
           <StatusWidget
-            title={CLIENT_STRINGS.STATUS_WIDGETS.MEMORY_USAGE_TITLE}
+            title={t('header.ram')}
             value={`${memoryMb} MB`}
             progress={memoryPercent}
           />
 
           {isIdleActive && (
             <StatusWidget
-              title={CLIENT_STRINGS.STATUS_WIDGETS.IDLE_SHUTDOWN_TITLE}
+              title={t('header.idleShutdown')}
               value={formatIdleTime(remainingIdleSeconds)}
-              subtitle={CLIENT_STRINGS.STATUS_WIDGETS.IDLE_SUBTITLE}
+              subtitle={t('header.autoOff')}
               color={IDLE_WIDGET_COLOR}
             />
           )}
@@ -290,7 +294,7 @@ export const ServerConfigWorkspace: React.FC<ServerConfigWorkspaceProps> = ({
       </div>
 
       <div className="server-config-workspace__body">
-        <Suspense fallback={<div className="empty-state"><p>Cargando panel...</p></div>}>
+        <Suspense fallback={<div className="empty-state"><p>{t('common.loadingPanel')}</p></div>}>
           {activeSubTab === 'console' && (
             activeInstanceId === instance.id ? (
               <ConsolePanel
@@ -317,17 +321,17 @@ export const ServerConfigWorkspace: React.FC<ServerConfigWorkspaceProps> = ({
             ) : (
               <div className="active-server-notice">
                 <h4 className="active-server-notice__title">
-                  Este no es el servidor activo actual
+                  {t('workspace.notActiveTitle')}
                 </h4>
                 <p className="active-server-notice__body">
-                  La consola, comandos RCON y controles de ejecución en tiempo real solo están disponibles para el servidor activo en el backend.
+                  {t('workspace.notActiveBody')}
                 </p>
                 <Button
                   variant={ButtonVariant.Success}
                   onClick={() => onSelectInstance(instance.id)}
                   data-action="activate-server"
                 >
-                  Activar "{instance.name}" para controlar
+                  {t('workspace.activateToControl', { name: instance.name })}
                 </Button>
               </div>
             )

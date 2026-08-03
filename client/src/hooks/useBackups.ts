@@ -1,8 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ApiService } from '../services/apiService.js';
+import { translate } from '../utils/i18n.js';
 import type { PzBackup } from '../types.js';
 
-export const useBackups = (token: string | null, instanceId: string | null) => {
+export interface UseBackupsParams {
+  token: string | null;
+  instanceId: string | null;
+}
+
+export const useBackups = ({ token, instanceId }: UseBackupsParams) => {
   const [backups, setBackups] = useState<PzBackup[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -18,7 +24,7 @@ export const useBackups = (token: string | null, instanceId: string | null) => {
       const data = await ApiService.getBackups(token, instanceId);
       setBackups(data);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Error al cargar respaldos');
+      setError(err instanceof Error ? err.message : translate('backups.errorLoad'));
     } finally {
       setLoading(false);
     }
@@ -29,14 +35,14 @@ export const useBackups = (token: string | null, instanceId: string | null) => {
   }, [fetchBackups]);
 
   const createBackup = useCallback(async (note?: string): Promise<PzBackup> => {
-    if (!token || !instanceId) throw new Error('No hay sesión o instancia seleccionada');
+    if (!token || !instanceId) throw new Error(translate('backups.noSessionOrInstance'));
     setLoading(true);
     try {
       const backup = await ApiService.createBackup(token, instanceId, note);
       await fetchBackups();
       return backup;
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Error al crear respaldo';
+      const msg = err instanceof Error ? err.message : translate('backups.errorCreate');
       setError(msg);
       throw new Error(msg);
     } finally {
@@ -45,13 +51,13 @@ export const useBackups = (token: string | null, instanceId: string | null) => {
   }, [token, instanceId, fetchBackups]);
 
   const restoreBackup = useCallback(async (backupId: string): Promise<void> => {
-    if (!token || !instanceId) throw new Error('No hay sesión o instancia seleccionada');
+    if (!token || !instanceId) throw new Error(translate('backups.noSessionOrInstance'));
     setLoading(true);
     try {
       await ApiService.restoreBackup(token, instanceId, backupId);
       await fetchBackups();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Error al restaurar respaldo';
+      const msg = err instanceof Error ? err.message : translate('backups.errorRestore');
       setError(msg);
       throw new Error(msg);
     } finally {
@@ -60,13 +66,13 @@ export const useBackups = (token: string | null, instanceId: string | null) => {
   }, [token, instanceId, fetchBackups]);
 
   const deleteBackup = useCallback(async (backupId: string): Promise<void> => {
-    if (!token || !instanceId) throw new Error('No hay sesión o instancia seleccionada');
+    if (!token || !instanceId) throw new Error(translate('backups.noSessionOrInstance'));
     setLoading(true);
     try {
       await ApiService.deleteBackup(token, instanceId, backupId);
       await fetchBackups();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Error al eliminar respaldo';
+      const msg = err instanceof Error ? err.message : translate('backups.errorDelete');
       setError(msg);
       throw new Error(msg);
     } finally {

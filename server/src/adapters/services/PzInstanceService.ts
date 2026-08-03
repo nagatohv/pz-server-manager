@@ -10,6 +10,8 @@ import IPzInstanceService, {
   MigrateInstanceResult
 } from '../../domain/ports/IPzInstanceService.js';
 import IPzInstanceRepository from '../../domain/ports/IPzInstanceRepository.js';
+import { AppError } from '../../domain/AppError.js';
+import { ERROR_CODES } from '../../config/errorCodes.js';
 import { SERVER_CONSTANTS } from '../../config/constants.js';
 import { SERVER_STRINGS } from '../../config/strings.js';
 import systemConfig from '../../config/system-config.js';
@@ -30,22 +32,22 @@ const NAME_REGEX = /^[A-Za-z0-9_-]{3,32}$/;
 
 const validateCreateInput = (input: CreateInstanceInput): void => {
   if (!NAME_REGEX.test(input.name)) {
-    throw new Error(SERVER_STRINGS.ERR_INSTANCE_NAME_INVALID);
+    throw new AppError(ERROR_CODES.ERR_INSTANCE_NAME_INVALID, SERVER_STRINGS.ERR_INSTANCE_NAME_INVALID);
   }
   if (input.gamePort < SERVER_CONSTANTS.MIN_INSTANCE_PORT || input.gamePort > SERVER_CONSTANTS.MAX_INSTANCE_PORT) {
-    throw new Error(SERVER_STRINGS.ERR_INSTANCE_PORTS_INVALID);
+    throw new AppError(ERROR_CODES.ERR_INSTANCE_PORTS_INVALID, SERVER_STRINGS.ERR_INSTANCE_PORTS_INVALID);
   }
   if (input.rconPort < SERVER_CONSTANTS.MIN_INSTANCE_PORT || input.rconPort > SERVER_CONSTANTS.MAX_INSTANCE_PORT) {
-    throw new Error(SERVER_STRINGS.ERR_INSTANCE_PORTS_INVALID);
+    throw new AppError(ERROR_CODES.ERR_INSTANCE_PORTS_INVALID, SERVER_STRINGS.ERR_INSTANCE_PORTS_INVALID);
   }
   if (input.gamePort === input.rconPort) {
-    throw new Error(SERVER_STRINGS.ERR_INSTANCE_PORTS_INVALID);
+    throw new AppError(ERROR_CODES.ERR_INSTANCE_PORTS_INVALID, SERVER_STRINGS.ERR_INSTANCE_PORTS_INVALID);
   }
   if (input.maxPlayers < 1 || input.maxPlayers > 128) {
-    throw new Error(SERVER_STRINGS.ERR_INSTANCE_PORTS_INVALID);
+    throw new AppError(ERROR_CODES.ERR_INSTANCE_PORTS_INVALID, SERVER_STRINGS.ERR_INSTANCE_PORTS_INVALID);
   }
   if (typeof input.branch !== 'string') {
-    throw new Error(SERVER_STRINGS.ERR_INSTANCE_BRANCH_REQUIRED);
+    throw new AppError(ERROR_CODES.ERR_INSTANCE_BRANCH_REQUIRED, SERVER_STRINGS.ERR_INSTANCE_BRANCH_REQUIRED);
   }
 };
 
@@ -110,7 +112,11 @@ export class PzInstanceService implements IPzInstanceService {
     validateCreateInput(input);
     const existing = await this.repository.findByName(input.name);
     if (existing) {
-      throw new Error(SERVER_STRINGS.ERR_INSTANCE_NAME_TAKEN.replace('{name}', input.name));
+      throw new AppError(
+        ERROR_CODES.ERR_INSTANCE_NAME_TAKEN,
+        SERVER_STRINGS.ERR_INSTANCE_NAME_TAKEN.replace('{name}', input.name),
+        { name: input.name }
+      );
     }
 
     const id = crypto.randomUUID();
@@ -162,20 +168,31 @@ export class PzInstanceService implements IPzInstanceService {
       }
       return { instance };
     } catch (err: unknown) {
+      if (err instanceof AppError) throw err;
       const message = err instanceof Error ? err.message : String(err);
-      // Best-effort cleanup so we don't leave an orphan directory.
       try { await fsp.rm(paths.instanceDir, { recursive: true, force: true }); } catch (_) { /* ignore */ }
-      throw new Error(SERVER_STRINGS.ERR_INSTANCE_CREATE_FAILED.replace('{message}', message));
+      throw new AppError(
+        ERROR_CODES.ERR_INSTANCE_CREATE_FAILED,
+        SERVER_STRINGS.ERR_INSTANCE_CREATE_FAILED.replace('{message}', message),
+        { message }
+      );
     }
   }
 
   async deleteInstance(id: string): Promise<void> {
     const instance = await this.repository.findById(id);
     if (!instance) {
-      throw new Error(SERVER_STRINGS.ERR_INSTANCE_NOT_FOUND.replace('{id}', id));
+      throw new AppError(
+        ERROR_CODES.ERR_INSTANCE_NOT_FOUND,
+        SERVER_STRINGS.ERR_INSTANCE_NOT_FOUND.replace('{id}', id),
+        { id }
+      );
     }
     if (instance.status !== 'STOPPED' && instance.status !== 'CRASHED') {
-      throw new Error(SERVER_STRINGS.ERR_INSTANCE_HAS_RUNNING_PROCESS);
+      throw new AppError(
+        ERROR_CODES.ERR_INSTANCE_HAS_RUNNING_PROCESS,
+        SERVER_STRINGS.ERR_INSTANCE_HAS_RUNNING_PROCESS
+      );
     }
 
     // Cancel active installation child process if running for this instance
@@ -206,8 +223,13 @@ export class PzInstanceService implements IPzInstanceService {
         await fsp.rm(instance.dataPath, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
       }
     } catch (err: unknown) {
+      if (err instanceof AppError) throw err;
       const message = err instanceof Error ? err.message : String(err);
-      throw new Error(SERVER_STRINGS.ERR_INSTANCE_DELETE_FAILED.replace('{message}', message));
+      throw new AppError(
+        ERROR_CODES.ERR_INSTANCE_DELETE_FAILED,
+        SERVER_STRINGS.ERR_INSTANCE_DELETE_FAILED.replace('{message}', message),
+        { message }
+      );
     }
     const result = await this.repository.update((reg) => {
       const remaining = reg.instances.filter((i) => i.id !== id);
@@ -235,7 +257,11 @@ export class PzInstanceService implements IPzInstanceService {
   async selectInstance(id: string): Promise<PzInstance> {
     const instance = await this.repository.findById(id);
     if (!instance) {
-      throw new Error(SERVER_STRINGS.ERR_INSTANCE_NOT_FOUND.replace('{id}', id));
+      throw new AppError(
+        ERROR_CODES.ERR_INSTANCE_NOT_FOUND,
+        SERVER_STRINGS.ERR_INSTANCE_NOT_FOUND.replace('{id}', id),
+        { id }
+      );
     }
     await this.repository.update((reg) => ({ ...reg, activeInstanceId: id }));
 
@@ -248,17 +274,38 @@ export class PzInstanceService implements IPzInstanceService {
 
   async migrateUserData(sourceId: string, targetId: string): Promise<MigrateInstanceResult> {
     if (sourceId === targetId) {
-      throw new Error(SERVER_STRINGS.ERR_INSTANCE_CANNOT_MIGRATE_TO_SELF);
+      throw new AppError(
+        ERROR_CODES.ERR_INSTANCE_CANNOT_MIGRATE_TO_SELF,
+        SERVER_STRINGS.ERR_INSTANCE_CANNOT_MIGRATE_TO_SELF
+      );
     }
     const source = await this.repository.findById(sourceId);
     const target = await this.repository.findById(targetId);
-    if (!source) throw new Error(SERVER_STRINGS.ERR_INSTANCE_NOT_FOUND.replace('{id}', sourceId));
-    if (!target) throw new Error(SERVER_STRINGS.ERR_INSTANCE_NOT_FOUND.replace('{id}', targetId));
+    if (!source) {
+      throw new AppError(
+        ERROR_CODES.ERR_INSTANCE_NOT_FOUND,
+        SERVER_STRINGS.ERR_INSTANCE_NOT_FOUND.replace('{id}', sourceId),
+        { id: sourceId }
+      );
+    }
+    if (!target) {
+      throw new AppError(
+        ERROR_CODES.ERR_INSTANCE_NOT_FOUND,
+        SERVER_STRINGS.ERR_INSTANCE_NOT_FOUND.replace('{id}', targetId),
+        { id: targetId }
+      );
+    }
     if (target.status !== 'STOPPED' && target.status !== 'CRASHED') {
-      throw new Error(SERVER_STRINGS.ERR_INSTANCE_HAS_RUNNING_PROCESS);
+      throw new AppError(
+        ERROR_CODES.ERR_INSTANCE_HAS_RUNNING_PROCESS,
+        SERVER_STRINGS.ERR_INSTANCE_HAS_RUNNING_PROCESS
+      );
     }
     if (!fs.existsSync(source.dataPath)) {
-      throw new Error(SERVER_STRINGS.ERR_INSTANCE_DATA_DIR_NOT_FOUND);
+      throw new AppError(
+        ERROR_CODES.ERR_INSTANCE_DATA_DIR_NOT_FOUND,
+        SERVER_STRINGS.ERR_INSTANCE_DATA_DIR_NOT_FOUND
+      );
     }
     try {
       // Wipe the target's current user data so we don't leave stale files behind.
@@ -271,20 +318,33 @@ export class PzInstanceService implements IPzInstanceService {
       );
       return { sourceId, targetId, filesCopied: files, bytesCopied: bytes };
     } catch (err: unknown) {
+      if (err instanceof AppError) throw err;
       const message = err instanceof Error ? err.message : String(err);
-      throw new Error(SERVER_STRINGS.ERR_INSTANCE_MIGRATE_FAILED.replace('{message}', message));
+      throw new AppError(
+        ERROR_CODES.ERR_INSTANCE_MIGRATE_FAILED,
+        SERVER_STRINGS.ERR_INSTANCE_MIGRATE_FAILED.replace('{message}', message),
+        { message }
+      );
     }
   }
 
   async installInstance(id: string): Promise<InstallInstanceResult> {
     const instance = await this.repository.findById(id);
     if (!instance) {
-      throw new Error(SERVER_STRINGS.ERR_INSTANCE_NOT_FOUND.replace('{id}', id));
+      throw new AppError(
+        ERROR_CODES.ERR_INSTANCE_NOT_FOUND,
+        SERVER_STRINGS.ERR_INSTANCE_NOT_FOUND.replace('{id}', id),
+        { id }
+      );
     }
 
     const steamCmdPath = path.join(this.steamCmdDir, 'steamcmd.sh');
     if (!fs.existsSync(steamCmdPath)) {
-      throw new Error(SERVER_STRINGS.ERR_STEAMCMD_NOT_FOUND.replace('{path}', steamCmdPath));
+      throw new AppError(
+        ERROR_CODES.ERR_STEAMCMD_NOT_FOUND,
+        SERVER_STRINGS.ERR_STEAMCMD_NOT_FOUND.replace('{path}', steamCmdPath),
+        { path: steamCmdPath }
+      );
     }
 
     // Diagnóstico de espacio en disco y permisos para entornos de producción (Dokploy)
@@ -413,7 +473,11 @@ export class PzInstanceService implements IPzInstanceService {
   async cleanupInstance(id: string): Promise<{ filesRemoved: number; bytesFreed: number }> {
     const instance = await this.repository.findById(id);
     if (!instance) {
-      throw new Error(SERVER_STRINGS.ERR_INSTANCE_NOT_FOUND.replace('{id}', id));
+      throw new AppError(
+        ERROR_CODES.ERR_INSTANCE_NOT_FOUND,
+        SERVER_STRINGS.ERR_INSTANCE_NOT_FOUND.replace('{id}', id),
+        { id }
+      );
     }
 
     let filesRemoved = 0;

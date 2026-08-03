@@ -269,7 +269,7 @@ describe('Custom Hooks Unit Tests', () => {
   });
 
   it('should test useBackups hook fetch, create, restore and delete operations', async () => {
-    const { result } = renderHook(() => useBackups('mock-token', 'inst-1'));
+    const { result } = renderHook(() => useBackups({ token: 'mock-token', instanceId: 'inst-1' }));
 
     await act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 0));

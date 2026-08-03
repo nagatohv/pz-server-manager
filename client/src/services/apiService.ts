@@ -9,7 +9,8 @@ import {
   API_CONFIG_PARSED,
   API_CONFIG_RAW
 } from '../config/constants.js';
-import { CLIENT_STRINGS } from '../config/strings.js';
+import { translate } from '../utils/i18n.js';
+import { resolveApiError } from '../utils/apiError.js';
 import {
   AuthResponse, BranchInfo, BranchCatalogSource, InstanceRegistry, PzInstance, ServerStatusPayload, IniSettingItem, PanelConfig, PzBackup
 } from '../types.js';
@@ -32,15 +33,15 @@ const buildJsonHeaders = (token?: string): Record<string, string> => ({
 
 const handleAuthError = (status: number): void => {
   if (status === 401 || status === 403) {
-    throw new Error(CLIENT_STRINGS.AUTH.ERR_SESSION_EXPIRED);
+    throw new Error(translate('auth.sessionExpired'));
   }
 };
 
 const parseJsonResponse = async <T>(res: Response): Promise<T> => {
   handleAuthError(res.status);
-  const data = await res.json() as T & { error?: string };
+  const data = await res.json() as T & { code?: string; error?: string };
   if (!res.ok) {
-    throw new Error((data as { error?: string }).error ?? CLIENT_STRINGS.ERRORS.REQUEST_FAILED);
+    throw new Error(resolveApiError(data));
   }
   return data;
 };
@@ -52,9 +53,9 @@ export class ApiService {
       headers: buildJsonHeaders(),
       body: JSON.stringify({ password })
     });
-    const data = await res.json() as AuthResponse & { error?: string };
+    const data = await res.json() as AuthResponse & { code?: string; error?: string };
     if (!res.ok) {
-      throw new Error(data.error ?? CLIENT_STRINGS.AUTH.ERR_AUTH_FAILED);
+      throw new Error(resolveApiError(data));
     }
     return data;
   }
@@ -113,8 +114,8 @@ export class ApiService {
       body: JSON.stringify({ content: text })
     });
     if (!res.ok) {
-      const data = await res.json() as { error?: string };
-      throw new Error(data.error ?? CLIENT_STRINGS.ERRORS.SAVE_FAILED);
+      const data = await res.json() as { code?: string; error?: string };
+      throw new Error(resolveApiError(data));
     }
   }
 

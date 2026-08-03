@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import React from 'react';
+import '../i18n/index.js';
 import { ServersPage } from '../components/pages/ServersPage.js';
 import { ServerStatus, type InstanceRegistry, type PzInstance } from '../types.js';
 
@@ -68,7 +69,7 @@ describe('ServersPage', () => {
   it('shows the empty state when no instances exist', () => {
     const harness = buildHarness();
     render(<ServersPage harness={harness as any} branches={sampleBranches} branchesSource="steam" activeServerStatus={{ status: ServerStatus.Stopped, onlinePlayers: 0, stats: { cpu: 0, memory: 0, memoryTotal: 4096 }, idleShutdown: { minutes: 5, active: false, remainingSeconds: 0 } }} onStart={noop} onStop={noop} />);
-    expect(screen.getByText(/no hay servidores/i)).toBeDefined();
+    expect(screen.getByText(/no hay servidores|no servers/i)).toBeDefined();
   });
 
   it('renders the instance list with the active badge', () => {
@@ -81,7 +82,7 @@ describe('ServersPage', () => {
     });
     render(<ServersPage harness={harness as any} branches={sampleBranches} branchesSource="steam" activeServerStatus={{ status: ServerStatus.Running, onlinePlayers: 4, stats: { cpu: 15, memory: 1200, memoryTotal: 4096 }, idleShutdown: { minutes: 5, active: false, remainingSeconds: 0 } }} onStart={noop} onStop={noop} />);
     expect(screen.getByText('srv-a')).toBeDefined();
-    expect(screen.getByText(/ejecutándose/i)).toBeDefined();
+    expect(screen.getByText(/ejecutándose|en línea|online/i)).toBeDefined();
   });
 
   it('opens the create dialog and submits the form', async () => {
@@ -110,7 +111,7 @@ describe('ServersPage', () => {
       }
     });
     render(<ServersPage harness={harness as any} branches={sampleBranches} branchesSource="steam" activeServerStatus={{ status: ServerStatus.Stopped, onlinePlayers: 0, stats: { cpu: 0, memory: 0, memoryTotal: 4096 }, idleShutdown: { minutes: 5, active: false, remainingSeconds: 0 } }} onStart={noop} onStop={noop} />);
-    fireEvent.click(screen.getByRole('button', { name: /instalar \/ actualizar/i }));
+    fireEvent.click(screen.getByRole('button', { name: /instalar \/ actualizar|instalar|update|install/i }));
     await waitFor(() => {
       expect(harness.install).toHaveBeenCalledWith('a');
     });
@@ -141,9 +142,103 @@ describe('ServersPage', () => {
       }
     });
     render(<ServersPage harness={harness as any} branches={sampleBranches} branchesSource="steam" activeServerStatus={{ status: ServerStatus.Stopped, onlinePlayers: 0, stats: { cpu: 0, memory: 0, memoryTotal: 4096 }, idleShutdown: { minutes: 5, active: false, remainingSeconds: 0 } }} onStart={noop} onStop={noop} />);
-    fireEvent.click(screen.getByRole('button', { name: /iniciar servidor/i }));
+    fireEvent.click(screen.getByRole('button', { name: /iniciar servidor|start server/i }));
     await waitFor(() => {
       expect(harness.select).toHaveBeenCalledWith('a');
     });
+  });
+
+  it('filters the instance list by name using the search field', () => {
+    const harness = buildHarness({
+      registry: {
+        instances: [
+          buildInstance({ id: 'a', name: 'alpha-server' }),
+          buildInstance({ id: 'b', name: 'bravo-server' }),
+          buildInstance({ id: 'c', name: 'charlie-server' })
+        ],
+        activeInstanceId: null,
+        updatedAt: 0
+      }
+    });
+    render(
+      <ServersPage
+        harness={harness as any}
+        branches={sampleBranches}
+        branchesSource="steam"
+        activeServerStatus={{ status: ServerStatus.Stopped, onlinePlayers: 0, stats: { cpu: 0, memory: 0, memoryTotal: 4096 }, idleShutdown: { minutes: 5, active: false, remainingSeconds: 0 } }}
+        onStart={noop}
+        onStop={noop}
+      />
+    );
+
+    expect(screen.getByText('alpha-server')).toBeDefined();
+    expect(screen.getByText('bravo-server')).toBeDefined();
+    expect(screen.getByText('charlie-server')).toBeDefined();
+
+    const search = screen.getByPlaceholderText(/buscar por nombre|search by name/i);
+    fireEvent.change(search, { target: { value: 'bravo' } });
+
+    expect(screen.queryByText('alpha-server')).toBeNull();
+    expect(screen.getByText('bravo-server')).toBeDefined();
+    expect(screen.queryByText('charlie-server')).toBeNull();
+  });
+
+  it('shows the no-results message when filters yield no matches', () => {
+    const harness = buildHarness({
+      registry: {
+        instances: [buildInstance({ id: 'a', name: 'alpha' })],
+        activeInstanceId: null,
+        updatedAt: 0
+      }
+    });
+    render(
+      <ServersPage
+        harness={harness as any}
+        branches={sampleBranches}
+        branchesSource="steam"
+        activeServerStatus={{ status: ServerStatus.Stopped, onlinePlayers: 0, stats: { cpu: 0, memory: 0, memoryTotal: 4096 }, idleShutdown: { minutes: 5, active: false, remainingSeconds: 0 } }}
+        onStart={noop}
+        onStop={noop}
+      />
+    );
+
+    const search = screen.getByPlaceholderText(/buscar por nombre|search by name/i);
+    fireEvent.change(search, { target: { value: 'zzz' } });
+
+    expect(screen.getByTestId('no-results')).toBeDefined();
+    expect(screen.queryByText('alpha')).toBeNull();
+  });
+
+  it('clears all filters with the clear button', () => {
+    const harness = buildHarness({
+      registry: {
+        instances: [
+          buildInstance({ id: 'a', name: 'alpha' }),
+          buildInstance({ id: 'b', name: 'bravo' })
+        ],
+        activeInstanceId: null,
+        updatedAt: 0
+      }
+    });
+    render(
+      <ServersPage
+        harness={harness as any}
+        branches={sampleBranches}
+        branchesSource="steam"
+        activeServerStatus={{ status: ServerStatus.Stopped, onlinePlayers: 0, stats: { cpu: 0, memory: 0, memoryTotal: 4096 }, idleShutdown: { minutes: 5, active: false, remainingSeconds: 0 } }}
+        onStart={noop}
+        onStop={noop}
+      />
+    );
+
+    const search = screen.getByPlaceholderText(/buscar por nombre|search by name/i);
+    fireEvent.change(search, { target: { value: 'alpha' } });
+    expect(screen.queryByText('bravo')).toBeNull();
+
+    const clearBtn = screen.getByRole('button', { name: /limpiar filtros|clear filters/i });
+    fireEvent.click(clearBtn);
+
+    expect(screen.getByText('alpha')).toBeDefined();
+    expect(screen.getByText('bravo')).toBeDefined();
   });
 });

@@ -1,14 +1,12 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import IAuthService from '../../domain/ports/IAuthService.js';
+import { AppError } from '../../domain/AppError.js';
+import { ERROR_CODES } from '../../config/errorCodes.js';
 import { SERVER_STRINGS } from '../../config/strings.js';
 import { SERVER_CONSTANTS } from '../../config/constants.js';
 import type { AuthTokenPayload, ISystemConfig } from '../../types.js';
 
-/**
- * Service implementing IAuthService.
- * Handles credential verification and JWT token generation/validation.
- */
 export default class JwtAuthService implements IAuthService {
   private systemConfig: ISystemConfig;
 
@@ -32,7 +30,7 @@ export default class JwtAuthService implements IAuthService {
     try {
       return jwt.verify(token, this.systemConfig.JWT_SECRET) as AuthTokenPayload;
     } catch (err) {
-      throw new Error(SERVER_STRINGS.ERR_INVALID_OR_EXPIRED_TOKEN);
+      throw new AppError(ERROR_CODES.ERR_INVALID_OR_EXPIRED_TOKEN, SERVER_STRINGS.ERR_INVALID_OR_EXPIRED_TOKEN);
     }
   }
 }

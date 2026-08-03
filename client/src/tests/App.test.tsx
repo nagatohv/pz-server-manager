@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
 import { render, screen, fireEvent, act } from '@testing-library/react';
+import '../i18n/index.js';
 import App from '../App.js';
 
 describe('App React Component', () => {
@@ -66,13 +67,15 @@ describe('App React Component', () => {
     localStorage.removeItem('pz_token');
     render(<App />);
 
-    expect(screen.getByText(/PZ Server Manager/i)).toBeDefined();
+    expect(screen.getByText(/Codiredes Game Manager|PZ Server Manager/i)).toBeDefined();
 
-    const input = screen.getByPlaceholderText(/Contraseña de administración/i);
-    fireEvent.change(input, { target: { value: 'secret' } });
+    const input = screen.getByPlaceholderText(/contraseña|password/i);
+    await act(async () => {
+      fireEvent.change(input, { target: { value: 'secret' } });
+    });
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /Iniciar Sesión/i }));
+      fireEvent.click(screen.getByRole('button', { name: /iniciar sesión|log in/i }));
     });
 
     expect(localStorage.getItem('pz_token')).toBe('mock-valid-token');
@@ -90,9 +93,9 @@ describe('App React Component', () => {
       await new Promise((resolve) => setTimeout(resolve, 0));
     });
 
-    expect(screen.getByText(/Servidores de Project Zomboid/i)).toBeDefined();
+    expect(screen.getByRole('heading', { level: 2 })).toBeDefined();
 
-    const logoutBtn = screen.getByRole('button', { name: /Salir/i });
+    const logoutBtn = screen.getByRole('button', { name: /Log Out|Cerrar Sesión|Salir/i });
     await act(async () => {
       fireEvent.click(logoutBtn);
     });

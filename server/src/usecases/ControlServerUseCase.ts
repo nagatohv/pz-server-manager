@@ -1,4 +1,6 @@
 import IServerControlService from '../domain/ports/IServerControlService.js';
+import { AppError } from '../domain/AppError.js';
+import { ERROR_CODES } from '../config/errorCodes.js';
 import { SERVER_STRINGS } from '../config/strings.js';
 import type { ControlResult, ServerStatusPayload } from '../types.js';
 
@@ -12,54 +14,33 @@ export default class ControlServerUseCase {
     this.serverControlService = serverControlService;
   }
 
-  /**
-   * Get current server status.
-   */
   getStatus(): ServerStatusPayload {
     return this.serverControlService.getStatus();
   }
 
-  /**
-   * Safe server startup.
-   */
   start(): ControlResult {
     return this.serverControlService.startServer();
   }
 
-  /**
-   * Safe server shutdown.
-   */
   stop(): ControlResult {
     return this.serverControlService.stopServer();
   }
 
-  /**
-   * Safe server restart.
-   */
   restart(): ControlResult {
     return this.serverControlService.restartServer();
   }
 
-  /**
-   * Force server termination.
-   */
   kill(): ControlResult {
     return this.serverControlService.killServer();
   }
 
-  /**
-   * Trigger server update.
-   */
   update(branch: string): ControlResult {
     return this.serverControlService.updateGame(branch);
   }
 
-  /**
-   * Dispatch an interactive command to the server console.
-   */
   sendCommand(command: string): ControlResult {
     if (!command) {
-      throw new Error(SERVER_STRINGS.ERR_COMMAND_REQUIRED);
+      throw new AppError(ERROR_CODES.ERR_COMMAND_REQUIRED, SERVER_STRINGS.ERR_COMMAND_REQUIRED);
     }
     return this.serverControlService.sendCommand(command);
   }

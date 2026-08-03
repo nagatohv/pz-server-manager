@@ -1,8 +1,8 @@
 import React, { FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { GuiCard } from '../molecules/GuiCard.js';
 import { Button } from '../atoms/Button.js';
 import { translateDescription } from '../../utils/translator.js';
-import { CLIENT_STRINGS } from '../../config/strings.js';
 import { IniSettingItem, PanelConfig, ButtonVariant } from '../../types.js';
 
 interface SettingsPanelProps {
@@ -22,7 +22,9 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   onSave,
   savedMessage
 }) => {
-  const languageOptions = Object.entries(CLIENT_STRINGS.SETTINGS_PANEL.LANGUAGES).map(
+  const { t } = useTranslation();
+
+  const languageOptions = Object.entries(t('settings.languages', { returnObjects: true }) as Record<string, string>).map(
     ([code, label]) => ({ value: code, label })
   );
 
@@ -32,27 +34,27 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
         {savedMessage && <div className="alert alert-success">{savedMessage}</div>}
 
         <div className="card-section">
-          <h3>{CLIENT_STRINGS.SETTINGS_PANEL.GENERAL_SECTION_TITLE}</h3>
+          <h3>{t('settings.generalSectionTitle')}</h3>
           <div className="gui-grid">
             <GuiCard
-              itemKey={CLIENT_STRINGS.SETTINGS_PANEL.IDLE_SHUTDOWN_LABEL}
+              itemKey={t('settings.idleShutdownLabel')}
               value={panelConfig.idleShutdownMinutes}
               onChange={(val) => onPanelConfigChange('idleShutdownMinutes', val)}
-              description={CLIENT_STRINGS.SETTINGS_PANEL.IDLE_SHUTDOWN_DESC}
+              description={t('settings.idleShutdownDesc')}
             />
 
             <GuiCard
-              itemKey={CLIENT_STRINGS.SETTINGS_PANEL.SERVER_LANG_LABEL}
+              itemKey={t('settings.serverLangLabel')}
               value={panelConfig.serverLanguage}
               onChange={(val) => onPanelConfigChange('serverLanguage', val)}
-              description={CLIENT_STRINGS.SETTINGS_PANEL.SERVER_LANG_DESC}
+              description={t('settings.serverLangDesc')}
               boundedOption={{ options: languageOptions }}
             />
           </div>
         </div>
 
         <div className="card-section card-section--top-margin">
-          <h3>{CLIENT_STRINGS.SETTINGS_PANEL.SERVER_INI_TITLE}</h3>
+          <h3>{t('settings.serverIniTitle')}</h3>
           <div className="gui-grid">
             {iniSettings.map((item) => (
               <GuiCard
@@ -68,7 +70,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
 
         <div className="form-actions form-actions--top-margin">
           <Button type="submit" variant={ButtonVariant.Primary}>
-            {CLIENT_STRINGS.SETTINGS_PANEL.SAVE_SETTINGS_BTN}
+            {t('settings.saveSettingsBtn')}
           </Button>
         </div>
       </form>

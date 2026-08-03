@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ApiService } from '../services/apiService.js';
+import { translate } from '../utils/i18n.js';
 import type { InstanceRegistry, PzInstance } from '../types.js';
 
 interface UseInstancesResult {
@@ -15,6 +16,13 @@ interface UseInstancesResult {
 }
 
 const emptyRegistry: InstanceRegistry = { instances: [], activeInstanceId: null, updatedAt: 0 };
+
+const isAuthError = (message: string): boolean => {
+  const translated = translate('auth.sessionExpired').toLowerCase();
+  const keywords = translated.split(/\s+/).filter((w) => w.length > 4);
+  const lower = message.toLowerCase();
+  return keywords.some((keyword) => lower.includes(keyword));
+};
 
 export function useInstances(token: string | null, onSessionExpired: () => void): UseInstancesResult {
   const [registry, setRegistry] = useState<InstanceRegistry>(emptyRegistry);
@@ -33,8 +41,8 @@ export function useInstances(token: string | null, onSessionExpired: () => void)
       });
       setError(null);
     } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : 'Error desconocido';
-      if (message.includes('expirada') || message.includes('autorizada')) onSessionExpired();
+      const message = e instanceof Error ? e.message : translate('common.unknownError');
+      if (isAuthError(message)) onSessionExpired();
       setError(message);
     } finally {
       setLoading(false);
@@ -47,34 +55,34 @@ export function useInstances(token: string | null, onSessionExpired: () => void)
   }, [token, refresh]);
 
   const create = useCallback(async (input: { name: string; branch: string; gamePort: number; rconPort: number; maxPlayers: number }) => {
-    if (!token) throw new Error('No autenticado');
+    if (!token) throw new Error(translate('common.notAuthenticated'));
     const { instance } = await ApiService.createInstance(token, input);
     await refresh();
     return instance;
   }, [token, refresh]);
 
   const select = useCallback(async (id: string) => {
-    if (!token) throw new Error('No autenticado');
+    if (!token) throw new Error(translate('common.notAuthenticated'));
     const { instance } = await ApiService.selectInstance(token, id);
     await refresh();
     return instance;
   }, [token, refresh]);
 
   const install = useCallback(async (id: string) => {
-    if (!token) throw new Error('No autenticado');
+    if (!token) throw new Error(translate('common.notAuthenticated'));
     const result = await ApiService.installInstance(token, id);
     await refresh();
     return result;
   }, [token, refresh]);
 
   const remove = useCallback(async (id: string) => {
-    if (!token) throw new Error('No autenticado');
+    if (!token) throw new Error(translate('common.notAuthenticated'));
     await ApiService.deleteInstance(token, id);
     await refresh();
   }, [token, refresh]);
 
   const migrate = useCallback(async (sourceId: string, targetId: string) => {
-    if (!token) throw new Error('No autenticado');
+    if (!token) throw new Error(translate('common.notAuthenticated'));
     const result = await ApiService.migrateInstance(token, targetId, sourceId);
     await refresh();
     return result;

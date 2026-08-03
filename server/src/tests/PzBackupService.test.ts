@@ -7,6 +7,7 @@ import { EventEmitter } from 'events';
 import { PzBackupService } from '../adapters/services/PzBackupService.js';
 import { PzInstanceService } from '../adapters/services/PzInstanceService.js';
 import { PzInstanceRepository } from '../adapters/repositories/PzInstanceRepository.js';
+import { ServerStatus } from '../types.js';
 
 // Mock child_process.spawn natively to avoid dependency on OS zip/unzip tools in Vitest
 vi.mock('child_process', async (importOriginal) => {
@@ -121,7 +122,7 @@ describe('PzBackupService', () => {
     // Set instance status to RUNNING
     await repo.update((reg) => ({
       ...reg,
-      instances: reg.instances.map((i) => i.id === instance.id ? { ...i, status: 'RUNNING' } : i)
+      instances: reg.instances.map((i) => i.id === instance.id ? { ...i, status: ServerStatus.Running } : i)
     }));
 
     await expect(backupService.restoreBackup(instance.id, backup.id)).rejects.toThrow(/Detén la instancia/i);

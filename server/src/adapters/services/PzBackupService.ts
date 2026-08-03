@@ -4,6 +4,8 @@ import path from 'path';
 import { spawn } from 'child_process';
 import IPzBackupService, { RestoreBackupResult } from '../../domain/ports/IPzBackupService.js';
 import IPzInstanceRepository from '../../domain/ports/IPzInstanceRepository.js';
+import { AppError } from '../../domain/AppError.js';
+import { ERROR_CODES } from '../../config/errorCodes.js';
 import { SERVER_STRINGS } from '../../config/strings.js';
 import type { PzBackup } from '../../types.js';
 
@@ -112,7 +114,11 @@ export class PzBackupService implements IPzBackupService {
   async listBackups(instanceId: string): Promise<PzBackup[]> {
     const instance = await this.repository.findById(instanceId);
     if (!instance) {
-      throw new Error(SERVER_STRINGS.ERR_INSTANCE_NOT_FOUND.replace('{id}', instanceId));
+      throw new AppError(
+        ERROR_CODES.ERR_INSTANCE_NOT_FOUND,
+        SERVER_STRINGS.ERR_INSTANCE_NOT_FOUND.replace('{id}', instanceId),
+        { id: instanceId }
+      );
     }
 
     const backupsDir = this.getBackupsDir(instance.dataPath);
@@ -129,7 +135,7 @@ export class PzBackupService implements IPzBackupService {
         try {
           const stat = await fsp.stat(filePath);
           let note: string | null = null;
-          
+
           const metaPath = filePath + '.json';
           if (fs.existsSync(metaPath)) {
             try {
@@ -159,7 +165,11 @@ export class PzBackupService implements IPzBackupService {
   async createBackup(instanceId: string, note?: string): Promise<PzBackup> {
     const instance = await this.repository.findById(instanceId);
     if (!instance) {
-      throw new Error(SERVER_STRINGS.ERR_INSTANCE_NOT_FOUND.replace('{id}', instanceId));
+      throw new AppError(
+        ERROR_CODES.ERR_INSTANCE_NOT_FOUND,
+        SERVER_STRINGS.ERR_INSTANCE_NOT_FOUND.replace('{id}', instanceId),
+        { id: instanceId }
+      );
     }
 
     const backupsDir = this.getBackupsDir(instance.dataPath);
@@ -199,28 +209,44 @@ export class PzBackupService implements IPzBackupService {
 
       return backup;
     } catch (err: unknown) {
+      if (err instanceof AppError) throw err;
       const message = err instanceof Error ? err.message : String(err);
       try { await fsp.rm(zipPath, { force: true }); } catch (_) {}
       try { await fsp.rm(zipPath + '.json', { force: true }); } catch (_) {}
-      throw new Error(SERVER_STRINGS.ERR_BACKUP_CREATE_FAILED.replace('{message}', message));
+      throw new AppError(
+        ERROR_CODES.ERR_BACKUP_CREATE_FAILED,
+        SERVER_STRINGS.ERR_BACKUP_CREATE_FAILED.replace('{message}', message),
+        { message }
+      );
     }
   }
 
   async restoreBackup(instanceId: string, backupId: string): Promise<RestoreBackupResult> {
     const instance = await this.repository.findById(instanceId);
     if (!instance) {
-      throw new Error(SERVER_STRINGS.ERR_INSTANCE_NOT_FOUND.replace('{id}', instanceId));
+      throw new AppError(
+        ERROR_CODES.ERR_INSTANCE_NOT_FOUND,
+        SERVER_STRINGS.ERR_INSTANCE_NOT_FOUND.replace('{id}', instanceId),
+        { id: instanceId }
+      );
     }
 
     if (instance.status !== 'STOPPED' && instance.status !== 'CRASHED') {
-      throw new Error(SERVER_STRINGS.ERR_BACKUP_RESTORE_RUNNING);
+      throw new AppError(
+        ERROR_CODES.ERR_BACKUP_RESTORE_RUNNING,
+        SERVER_STRINGS.ERR_BACKUP_RESTORE_RUNNING
+      );
     }
 
     const backupsDir = this.getBackupsDir(instance.dataPath);
     const zipPath = path.join(backupsDir, backupId);
 
     if (!fs.existsSync(zipPath)) {
-      throw new Error(SERVER_STRINGS.ERR_BACKUP_NOT_FOUND.replace('{id}', backupId));
+      throw new AppError(
+        ERROR_CODES.ERR_BACKUP_NOT_FOUND,
+        SERVER_STRINGS.ERR_BACKUP_NOT_FOUND.replace('{id}', backupId),
+        { id: backupId }
+      );
     }
 
     try {
@@ -239,22 +265,35 @@ export class PzBackupService implements IPzBackupService {
 
       return { restoredAt: now, filesRestored: filesRemoved };
     } catch (err: unknown) {
+      if (err instanceof AppError) throw err;
       const message = err instanceof Error ? err.message : String(err);
-      throw new Error(SERVER_STRINGS.ERR_BACKUP_RESTORE_FAILED.replace('{message}', message));
+      throw new AppError(
+        ERROR_CODES.ERR_BACKUP_RESTORE_FAILED,
+        SERVER_STRINGS.ERR_BACKUP_RESTORE_FAILED.replace('{message}', message),
+        { message }
+      );
     }
   }
 
   async deleteBackup(instanceId: string, backupId: string): Promise<void> {
     const instance = await this.repository.findById(instanceId);
     if (!instance) {
-      throw new Error(SERVER_STRINGS.ERR_INSTANCE_NOT_FOUND.replace('{id}', instanceId));
+      throw new AppError(
+        ERROR_CODES.ERR_INSTANCE_NOT_FOUND,
+        SERVER_STRINGS.ERR_INSTANCE_NOT_FOUND.replace('{id}', instanceId),
+        { id: instanceId }
+      );
     }
 
     const backupsDir = this.getBackupsDir(instance.dataPath);
     const zipPath = path.join(backupsDir, backupId);
 
     if (!fs.existsSync(zipPath)) {
-      throw new Error(SERVER_STRINGS.ERR_BACKUP_NOT_FOUND.replace('{id}', backupId));
+      throw new AppError(
+        ERROR_CODES.ERR_BACKUP_NOT_FOUND,
+        SERVER_STRINGS.ERR_BACKUP_NOT_FOUND.replace('{id}', backupId),
+        { id: backupId }
+      );
     }
 
     try {
@@ -262,8 +301,13 @@ export class PzBackupService implements IPzBackupService {
       try { await fsp.rm(zipPath + '.json', { force: true }); } catch (_) {}
       this.log(SERVER_STRINGS.MSG_BACKUP_DELETED.replace('{name}', backupId));
     } catch (err: unknown) {
+      if (err instanceof AppError) throw err;
       const message = err instanceof Error ? err.message : String(err);
-      throw new Error(SERVER_STRINGS.ERR_BACKUP_DELETE_FAILED.replace('{message}', message));
+      throw new AppError(
+        ERROR_CODES.ERR_BACKUP_DELETE_FAILED,
+        SERVER_STRINGS.ERR_BACKUP_DELETE_FAILED.replace('{message}', message),
+        { message }
+      );
     }
   }
 }

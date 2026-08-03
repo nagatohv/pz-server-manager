@@ -1,8 +1,8 @@
 import './AlertModal.scss';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '../atoms/Button.js';
 import { ButtonVariant } from '../../types.js';
-import { CLIENT_STRINGS } from '../../config/strings.js';
 
 export type AlertModalType = 'info' | 'error' | 'success' | 'confirm';
 
@@ -18,22 +18,11 @@ export interface AlertModalProps {
   onClose: () => void;
 }
 
-const getModalHeader = (type: AlertModalType = 'info', title?: string): { title: string; icon: string } => {
-  if (title) {
-    const icon = type === 'error' ? '⚠️' : type === 'success' ? '✅' : type === 'confirm' ? '❓' : 'ℹ️';
-    return { title, icon };
-  }
-  switch (type) {
-    case 'error':
-      return { title: CLIENT_STRINGS.MODAL.ERROR_TITLE, icon: '⚠️' };
-    case 'success':
-      return { title: CLIENT_STRINGS.MODAL.SUCCESS_TITLE, icon: '✅' };
-    case 'confirm':
-      return { title: CLIENT_STRINGS.MODAL.CONFIRM_TITLE, icon: '❓' };
-    case 'info':
-    default:
-      return { title: CLIENT_STRINGS.MODAL.ALERT_TITLE, icon: 'ℹ️' };
-  }
+const ICON_BY_TYPE: Record<AlertModalType, string> = {
+  info: 'ℹ️',
+  error: '⚠️',
+  success: '✅',
+  confirm: '❓'
 };
 
 export const AlertModal: React.FC<AlertModalProps> = ({
@@ -47,9 +36,17 @@ export const AlertModal: React.FC<AlertModalProps> = ({
   onCancel,
   onClose
 }) => {
+  const { t } = useTranslation();
   if (!isOpen) return null;
 
-  const header = getModalHeader(type, title);
+  const defaultTitles: Record<AlertModalType, string> = {
+    info: t('modal.alertTitle'),
+    error: t('modal.errorTitle'),
+    success: t('modal.successTitle'),
+    confirm: t('modal.confirmTitle')
+  };
+
+  const resolvedTitle = title ?? defaultTitles[type];
   const isConfirm = type === 'confirm';
 
   const handleConfirm = () => {
@@ -78,8 +75,8 @@ export const AlertModal: React.FC<AlertModalProps> = ({
     >
       <div className={`modal alert-modal alert-modal--${type}`}>
         <header className="alert-modal__header">
-          <span className="alert-modal__icon" aria-hidden="true">{header.icon}</span>
-          <h3 className="alert-modal__title">{header.title}</h3>
+          <span className="alert-modal__icon" aria-hidden="true">{ICON_BY_TYPE[type]}</span>
+          <h3 className="alert-modal__title">{resolvedTitle}</h3>
         </header>
 
         <div className="alert-modal__content">
@@ -95,7 +92,7 @@ export const AlertModal: React.FC<AlertModalProps> = ({
                 onClick={handleCancel}
                 data-action="alert-cancel"
               >
-                {cancelText || CLIENT_STRINGS.MODAL.CANCEL_BTN}
+                {cancelText || t('modal.cancelBtn')}
               </Button>
               <Button
                 type="button"
@@ -103,7 +100,7 @@ export const AlertModal: React.FC<AlertModalProps> = ({
                 onClick={handleConfirm}
                 data-action="alert-confirm"
               >
-                {confirmText || CLIENT_STRINGS.MODAL.CONFIRM_BTN}
+                {confirmText || t('modal.confirmBtn')}
               </Button>
             </>
           ) : (
@@ -113,7 +110,7 @@ export const AlertModal: React.FC<AlertModalProps> = ({
               onClick={handleConfirm}
               data-action="alert-accept"
             >
-              {confirmText || CLIENT_STRINGS.MODAL.ACCEPT_BTN}
+              {confirmText || t('modal.acceptBtn')}
             </Button>
           )}
         </footer>

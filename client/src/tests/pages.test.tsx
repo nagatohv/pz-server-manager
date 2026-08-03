@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
+import '../i18n/index.js';
 import { LoginPage } from '../components/pages/LoginPage.js';
 import { PortalPage } from '../components/pages/PortalPage.js';
 import { ServerStatus, EditorType, EditorMode } from '../types.js';
@@ -18,7 +19,7 @@ const noop = () => undefined;
 describe('Pages Components Tests', () => {
   it('should render LoginPage component', () => {
     render(<LoginPage onLogin={vi.fn()} />);
-    expect(screen.getByText(/PZ Server Manager/i)).toBeDefined();
+    expect(screen.getByRole('heading', { level: 2 })).toBeDefined();
   });
 
   it('should render PortalPage component', () => {
@@ -75,6 +76,6 @@ describe('Pages Components Tests', () => {
       />
     );
 
-    expect(screen.getByText(/Servidores de Project Zomboid/i)).toBeDefined();
+    expect(screen.getByRole('heading', { level: 2 })).toBeDefined();
   });
 });

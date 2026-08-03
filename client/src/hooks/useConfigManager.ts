@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ApiService } from '../services/apiService.js';
-import { CLIENT_STRINGS } from '../config/strings.js';
+import { translate } from '../utils/i18n.js';
 import {
   MOD_LIST_SEPARATOR,
   INI_KEY_MODS,
@@ -21,8 +21,12 @@ const DEFAULT_PANEL_CONFIG: PanelConfig = {
   serverLanguage: 'es'
 };
 
-const isAuthError = (message: string): boolean =>
-  message.includes('expirada') || message.includes('autorizada');
+const isAuthError = (message: string): boolean => {
+  const translated = translate('auth.sessionExpired').toLowerCase();
+  const keywords = translated.split(/\s+/).filter((w) => w.length > 4);
+  const lower = message.toLowerCase();
+  return keywords.some((keyword) => lower.includes(keyword));
+};
 
 const parseModsFromSettings = (settings: IniSettingItem[]): ModItem[] => {
   const modsValue = settings.find((s) => s.key === INI_KEY_MODS)?.value ?? '';
@@ -114,7 +118,7 @@ export function useConfigManager(token: string | null, onSessionExpired: () => v
       ApiService.saveIniSettings(token, buildSettingsMap(iniSettings), instanceId),
       ApiService.savePanelConfig(token, panelConfig, instanceId)
     ]);
-    showSuccess(CLIENT_STRINGS.SETTINGS_PANEL.SUCCESS_MESSAGE);
+    showSuccess(translate('settings.successMessage'));
   }, [token, iniSettings, panelConfig, targetInstanceId, showSuccess]);
 
   const addMod = useCallback((modId: string, workshopId: string) => {
@@ -139,7 +143,7 @@ export function useConfigManager(token: string | null, onSessionExpired: () => v
 
     setIniSettings(updatedSettings);
     await ApiService.saveIniSettings(token, buildSettingsMap(updatedSettings), instanceId);
-    showSuccess(CLIENT_STRINGS.MODS_PANEL.SUCCESS_MESSAGE);
+    showSuccess(translate('mods.successMessage'));
   }, [token, modsList, iniSettings, targetInstanceId, showSuccess]);
 
   const updateSandboxValue = useCallback((pathStr: string, newVal: unknown) => {
@@ -191,12 +195,7 @@ export function useConfigManager(token: string | null, onSessionExpired: () => v
       }
     }
 
-    showSuccess(
-      CLIENT_STRINGS.EDITOR_PANEL.SUCCESS_MESSAGE_TEMPLATE.replace(
-        '{type}',
-        editorType.toUpperCase()
-      )
-    );
+    showSuccess(translate('editor.successMessage', { type: editorType.toUpperCase() }));
   }, [token, editorMode, editorType, rawConfigText, parsedConfigData, panelConfig, targetInstanceId, showSuccess]);
 
   return {

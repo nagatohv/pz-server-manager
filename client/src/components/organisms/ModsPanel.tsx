@@ -1,8 +1,8 @@
 import React, { useState, FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ModCard } from '../molecules/ModCard.js';
 import { Button } from '../atoms/Button.js';
 import { Input } from '../atoms/Input.js';
-import { CLIENT_STRINGS } from '../../config/strings.js';
 import { ModItem, ButtonVariant } from '../../types.js';
 
 interface ModsPanelProps {
@@ -20,6 +20,7 @@ export const ModsPanel: React.FC<ModsPanelProps> = ({
   onSaveMods,
   savedMessage
 }) => {
+  const { t } = useTranslation();
   const [newModId, setNewModId] = useState('');
   const [newWorkshopId, setNewWorkshopId] = useState('');
 
@@ -38,30 +39,30 @@ export const ModsPanel: React.FC<ModsPanelProps> = ({
       {savedMessage && <div className="alert alert-success">{savedMessage}</div>}
 
       <div className="card-section">
-        <h3>{CLIENT_STRINGS.MODS_PANEL.ADD_MOD_TITLE}</h3>
+        <h3>{t('mods.addTitle')}</h3>
         <form onSubmit={handleAdd} className="mod-add-form">
           <Input
-            label={CLIENT_STRINGS.MODS_PANEL.MOD_ID_LABEL}
-            placeholder={CLIENT_STRINGS.MODS_PANEL.MOD_ID_PLACEHOLDER}
+            label={t('mods.modIdLabel')}
+            placeholder={t('mods.modIdPlaceholder')}
             value={newModId}
             onChange={(e) => setNewModId(e.target.value)}
           />
           <Input
-            label={CLIENT_STRINGS.MODS_PANEL.WORKSHOP_ID_LABEL}
-            placeholder={CLIENT_STRINGS.MODS_PANEL.WORKSHOP_ID_PLACEHOLDER}
+            label={t('mods.workshopIdLabel')}
+            placeholder={t('mods.workshopIdPlaceholder')}
             value={newWorkshopId}
             onChange={(e) => setNewWorkshopId(e.target.value)}
           />
           <Button type="submit" variant={ButtonVariant.Primary} className="mod-add-form__submit">
-            {CLIENT_STRINGS.MODS_PANEL.ADD_MOD_BTN}
+            {t('mods.addBtn')}
           </Button>
         </form>
       </div>
 
       <div className="card-section card-section--top-margin">
-        <h3>{CLIENT_STRINGS.MODS_PANEL.INSTALLED_MODS_TITLE} ({modsList.length})</h3>
+        <h3>{t('mods.listTitle')} ({modsList.length})</h3>
         {modsList.length === 0 ? (
-          <p className="empty-text">{CLIENT_STRINGS.MODS_PANEL.NO_MODS_TEXT}</p>
+          <p className="empty-text">{t('mods.empty')}</p>
         ) : (
           <div className="mods-grid">
             {modsList.map((mod, idx) => (
@@ -78,7 +79,7 @@ export const ModsPanel: React.FC<ModsPanelProps> = ({
 
       <div className="form-actions form-actions--top-margin">
         <Button variant={ButtonVariant.Primary} onClick={onSaveMods}>
-          {CLIENT_STRINGS.MODS_PANEL.SAVE_MODS_BTN}
+          {t('mods.saveBtn')}
         </Button>
       </div>
     </div>

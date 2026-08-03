@@ -348,6 +348,20 @@ body {
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
 }
 
+.tab-header--inline {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1.5rem;
+  width: 100%;
+}
+
+.tab-header__text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
 /* --- BARRA DE CONTROL DE ACCIONES --- */
 
 .control-bar {

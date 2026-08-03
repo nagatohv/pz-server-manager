@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ControlBar } from '../molecules/ControlBar.js';
-import { CLIENT_STRINGS } from '../../config/strings.js';
 import { BranchInfo, BranchCatalogSource, BranchLoadState, ServerStatusPayload, ServerStatus, PzInstance } from '../../types.js';
 
 interface ConsolePanelProps {
@@ -46,6 +46,7 @@ export const ConsolePanel: React.FC<ConsolePanelProps> = ({
   onSelectInstance,
   hideServerSelect = false
 }) => {
+  const { t } = useTranslation();
   const [commandInput, setCommandInput] = useState('');
   const terminalBodyRef = useRef<HTMLDivElement>(null);
   const isServerRunning = status.status === ServerStatus.Running;
@@ -63,6 +64,8 @@ export const ConsolePanel: React.FC<ConsolePanelProps> = ({
     onSendCommand(trimmed);
     setCommandInput('');
   };
+
+  const terminalTitle = t('console.title');
 
   return (
     <div className="tab-content">
@@ -91,7 +94,7 @@ export const ConsolePanel: React.FC<ConsolePanelProps> = ({
           <span className="dot dot--red" />
           <span className="dot dot--yellow" />
           <span className="dot dot--green" />
-          <span className="terminal-title">{CLIENT_STRINGS.CONSOLE_PANEL.TERMINAL_TITLE}</span>
+          <span className="terminal-title">{terminalTitle}</span>
         </div>
 
         <div className="terminal-body" ref={terminalBodyRef}>
@@ -107,18 +110,18 @@ export const ConsolePanel: React.FC<ConsolePanelProps> = ({
           <input
             type="text"
             className="terminal-input"
-            placeholder={CLIENT_STRINGS.CONSOLE_PANEL.INPUT_PLACEHOLDER}
+            placeholder={t('console.placeholder')}
             value={commandInput}
             onChange={(e) => setCommandInput(e.target.value)}
             disabled={!isServerRunning}
-            aria-label={CLIENT_STRINGS.CONSOLE_PANEL.INPUT_PLACEHOLDER}
+            aria-label={t('console.placeholder')}
           />
           <button
             type="submit"
             className="btn btn-primary btn-sm"
             disabled={!isServerRunning}
           >
-            {CLIENT_STRINGS.CONSOLE_PANEL.SEND_BTN}
+            {t('console.send')}
           </button>
         </form>
       </div>
