@@ -38,9 +38,13 @@ Utiliza patrones de diseño establecidos para resolver problemas arquitectónico
 ## 6. Zero Hardcode (Cero Código Duro)
 * **Cero Cadenas Mágicas**: Ninguna ruta, número mágico, comando, URL o mensaje del sistema debe escribirse directamente en el código de ejecución.
 * **Uso de Archivos de Configuración**: Todos los valores constantes deben residir en:
-  - [`server/src/config/constants.ts`](file:///d:/workspace/codiredes/pz/server/src/config/constants.ts) para rutas del backend, códigos HTTP y configuración del puerto.
-  - [`server/src/config/strings.ts`](file:///d:/workspace/codiredes/pz/server/src/config/strings.ts) para los textos y mensajes traducidos del backend.
-  - [`client/src/config/constants.ts`](file:///d:/workspace/codiredes/pz/client/src/config/constants.ts) y [`client/src/config/strings.ts`](file:///d:/workspace/codiredes/pz/client/src/config/strings.ts) para el frontend.
+  - [`../server/src/config/constants.ts`](../server/src/config/constants.ts) para rutas del backend, códigos HTTP, puertos por defecto y nombres físicos de archivos del juego.
+  - [`../server/src/config/errorCodes.ts`](../server/src/config/errorCodes.ts) para el catálogo de **códigos de error tipados** (`ERR_*`) que el backend devuelve en `res.json({ code, error })`. Estos códigos son consumidos por el cliente y traducidos vía `i18n`.
+  - [`../server/src/config/strings.ts`](../server/src/config/strings.ts) para los **mensajes en español** que el backend loguea y envía como `fallback` en las respuestas de error.
+  - [`../client/src/config/constants.ts`](../client/src/config/constants.ts) para rutas de endpoints (`API_*`), intervalos de refresco y constantes de navegación del frontend.
+  - [`../client/src/config/env.ts`](../client/src/config/env.ts) para variables de entorno del cliente (`API_BASE`, `WS_URL`, `APP_NAME`).
+  - [`../client/src/i18n/locales/`](../client/src/i18n/locales/) (`en.json`, `es.json`) para **todos los textos visibles al usuario** del frontend. Se accede vía `useTranslation()` en componentes o `translate()` en `../client/src/utils/i18n.ts` para código no-React.
+  - [`../client/src/utils/apiError.ts`](../client/src/utils/apiError.ts) es la **única pieza** que sabe cómo mapear un `code` del backend a una cadena traducida (`i18n.t('errors.<code>')`) con fallback al campo `error`.
 
 ## 7. Zero Documenting Code (Cero Comentarios Redundantes)
 * **Evita Comentarios Inline**: No escribas comentarios línea por línea que repitan lo que el código TypeScript ya describe con claridad.
@@ -61,5 +65,9 @@ Utiliza patrones de diseño establecidos para resolver problemas arquitectónico
 
 ## 11. Estilos y Presentación (CSS)
 * **Prohibición de Estilos en Línea (Inline Styles)**: Bajo ninguna circunstancia se deben escribir estilos en línea (`style={{...}}`) en los componentes de React, a menos que sea un cálculo puramente dinámico que dependa de variables de estado de React que cambien de forma continua (ej. porcentaje de progreso, posición arrastrada).
-* **Centralización de Estilos en CSS**: Todos los estilos del frontend deben definirse en el archivo [`client/src/App.css`](file:///d:/workspace/codiredes/pz/client/src/App.css) utilizando variables de diseño (tokens) de CSS y clases CSS descriptivas.
-* **Sin Colores en Duro**: Nunca utilices valores hexadecimales (`#38bdf8`), `rgb`, `rgba` o palabras clave de color de forma dura en el código TSX o CSS. Emplea siempre las variables CSS de paleta definidas (ej: `var(--color-primary)`, `var(--border-radius-sm)`, etc.).
+* **Centralización de Estilos**: Los estilos del frontend se organizan así:
+  - **Design tokens y mixins globales**: [`../client/src/styles/`](../client/src/styles/) — `_tokens.scss` (colores, radios, fuentes, espaciados), `_mixins.scss` (helpers reutilizables), `_reset.scss`, `_typography.scss`, `_animations.scss`.
+  - **Entry point global**: [`../client/src/styles/main.scss`](../client/src/styles/main.scss) importa `App.css` para mantener compatibilidad visual histórica y luego define las reglas globales (`.alert`, `.filters-bar`, `.search-input`, `.table`).
+  - **Estilos por componente**: cada organismo/molécula/átomo con estilos propios usa un archivo `.scss` hermano (ej: `Header.scss` junto a `Header.tsx`, `AlertModal.scss` junto a `AlertModal.tsx`).
+  - **Clases descriptivas**: usar nombres semánticos en kebab-case (`.filters-bar__group`, `.search-input__clear`).
+* **Sin Colores en Duro**: Nunca utilices valores hexadecimales (`#38bdf8`), `rgb`, `rgba` o palabras clave de color de forma dura en el código TSX o CSS. Emplea siempre las variables CSS de paleta definidas en `_tokens.scss` (ej: `var(--color-primary)`, `var(--border-radius-sm)`, etc.). Cuando se necesite un valor SCSS (no CSS runtime), importar `@use '@/styles/tokens' as t;` y usar `t.$primary`, `t.$bg-card`, etc.
