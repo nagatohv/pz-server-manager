@@ -73,6 +73,14 @@ const backupService = new PzBackupService({
 });
 const authService = new JwtAuthService(systemConfig);
 
+// 2.5. Wire uptime tracking: whenever the PZ process stops/crashes, accumulate
+// the finished session duration into the active instance's totalUptimeSeconds.
+pzProcessControlService.onSessionEnd = (sessionDurationMs: number) => {
+  instanceService.recordUptime('', sessionDurationMs).catch((err: Error) =>
+    console.error('[Uptime] Failed to record session duration:', err.message)
+  );
+};
+
 // 3. Instanciar Casos de Uso orquestadores
 const authenticateUseCase = new AuthenticateUseCase(authService);
 const controlServerUseCase = new ControlServerUseCase(serverControlService);

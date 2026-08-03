@@ -18,6 +18,7 @@ const buildInstance = (overrides: Partial<PzInstance> = {}): PzInstance => ({
   createdAt: 1_000_000,
   updatedAt: 1_000_000,
   lastInstalledAt: 1_000_000,
+  totalUptimeSeconds: 0,
   ...overrides
 });
 

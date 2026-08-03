@@ -96,6 +96,16 @@ export interface ServerConfigInfo {
   installedBranch: string;
 }
 
+/** Uptime information exposed through getStatus(). */
+export interface UptimeInfo {
+  /** Unix ms when the current session started, or null while the server is stopped. */
+  sessionStartedAt: number | null;
+  /** Seconds elapsed in the current session (0 when stopped). */
+  currentSessionSeconds: number;
+  /** Total accumulated uptime in seconds across all past sessions. */
+  totalUptimeSeconds: number;
+}
+
 /** Full status payload returned by IServerControlService.getStatus(). */
 export interface ServerStatusPayload {
   status: ServerStatus;
@@ -103,6 +113,7 @@ export interface ServerStatusPayload {
   onlinePlayers: number;
   idleShutdown: IdleShutdownInfo;
   config: ServerConfigInfo;
+  uptime: UptimeInfo;
 }
 
 /** Shape of an observer that subscribes to PzProcessControlService events. */
@@ -196,6 +207,8 @@ export interface PzInstance {
   updatedAt: number;
   /** Unix timestamp (ms) of the last successful SteamCMD install/update, or null. */
   lastInstalledAt: number | null;
+  /** Total accumulated uptime in seconds across all past sessions. */
+  totalUptimeSeconds: number;
 }
 
 /** Persistent registry of all PzInstances known to the portal. */

@@ -51,6 +51,28 @@ const LINUX_PAGE_SIZE = 4_096;
 const CLK_TCK = 100;
 
 /**
+ * Detects the player count from a stdout line emitted by the PZ server.
+ * The dedicated server can be configured in English or Spanish, and the
+ * output of the `players` admin command (and connect/disconnect events)
+ * uses the active server language, so the regex must accept both.
+ */
+const PLAYER_COUNT_REGEX = /(?:Players?\s+connected|Jugadores?\s+conectados?)\s*\(?(\d+)\)?/i;
+
+/**
+ * Matches a player connect line emitted by PZ when a user joins.
+ * English: `Player connected: NAME` / `User connected: NAME`
+ * Spanish: `Jugador conectado: NAME` / `Usuario conectado: NAME`
+ */
+const PLAYER_CONNECTED_REGEX = /(?:Player|User|Jugador|Usuario)\s+(?:connected|conectado)\s*[:\-]\s*(\S+)/i;
+
+/**
+ * Matches a player disconnect line emitted by PZ when a user leaves.
+ * English: `Player disconnected: NAME` / `User disconnected: NAME`
+ * Spanish: `Jugador desconectado: NAME` / `Usuario desconectado: NAME`
+ */
+const PLAYER_DISCONNECTED_REGEX = /(?:Player|User|Jugador|Usuario)\s+(?:disconnected|desconectado)\s*[:\-]\s*(\S+)/i;
+
+/**
  * Service implementing IServerControlService as a Singleton.
  * Orchestrates the OS process lifecycle of the Project Zomboid dedicated server.
  * Implements the Observer pattern to notify subscribers of logs and status changes.
@@ -70,6 +92,18 @@ class PzProcessControlService implements IServerControlService {
   // Server attributes
   private installedBranch: string = '';
   private onlinePlayerCount: number = 0;
+  /** Names of currently connected players, derived from stdout events. */
+  private connectedPlayerNames: Set<string> = new Set();
+  /** Unix ms of the last time we received a positive player-count signal. */
+  private lastPlayerSignalAt: number = 0;
+
+  // Uptime tracking
+  /** Unix ms when the current session started, or null while stopped. */
+  private sessionStartedAt: number | null = null;
+  /** Last total accumulated uptime (ms) loaded from instance.json at boot. */
+  private lastKnownTotalUptimeMs: number = 0;
+  /** Optional hook fired when a session ends; receives session duration in ms. */
+  public onSessionEnd: ((sessionDurationMs: number) => void) | null = null;
 
   // Resource stats cache
   private cachedCpuPercent: number = 0;
@@ -81,6 +115,7 @@ class PzProcessControlService implements IServerControlService {
   private idleShutdownMinutes: number = 0;
   private idleShutdownTimer: NodeJS.Timeout | null = null;
   private idleShutdownExpiresAt: number | null = null;
+  private stalePlayerCheckInterval: NodeJS.Timeout | null = null;
   private playerQueryInterval: NodeJS.Timeout | null = null;
   private monitorInterval: NodeJS.Timeout | null = null;
 
@@ -93,6 +128,7 @@ class PzProcessControlService implements IServerControlService {
 
     this.initInstalledBranch();
     this.loadIdleShutdownConfig();
+    this.loadTotalUptime();
   }
 
   /**
@@ -118,6 +154,66 @@ class PzProcessControlService implements IServerControlService {
       this.idleShutdownMinutes = panelConfig.idleShutdownMinutes || 0;
     } catch (err) {
       // Ignore initial config errors
+    }
+  }
+
+  /**
+   * Load the accumulated uptime from the active instance's metadata so the
+   * service survives container restarts without losing historical totals.
+   */
+  private loadTotalUptime(): void {
+    const metaPath = path.join(this.systemConfig.DATA_DIR, 'instance.json');
+    try {
+      if (!fs.existsSync(metaPath)) return;
+      const raw = fs.readFileSync(metaPath, 'utf8');
+      const parsed = JSON.parse(raw) as { totalUptimeSeconds?: number };
+      const seconds = Number(parsed.totalUptimeSeconds);
+      if (Number.isFinite(seconds) && seconds >= 0) {
+        this.lastKnownTotalUptimeMs = Math.floor(seconds * 1000);
+      }
+    } catch (err) {
+      // Ignore parse errors: starting from zero is a safe default.
+    }
+  }
+
+  /**
+   * Returns the total accumulated uptime in ms, including the live session
+   * if one is in progress.
+   */
+  private computeTotalUptimeMs(): number {
+    const sessionMs = this.sessionStartedAt ? Date.now() - this.sessionStartedAt : 0;
+    return this.lastKnownTotalUptimeMs + Math.max(0, sessionMs);
+  }
+
+  /**
+   * Marks the current session as ended, accumulates its duration into
+   * `lastKnownTotalUptimeMs` and fires the `onSessionEnd` callback so a
+   * sibling service (e.g. PzInstanceService) can persist the new total.
+   */
+  private endCurrentSession(): void {
+    if (this.sessionStartedAt === null) return;
+    const durationMs = Math.max(0, Date.now() - this.sessionStartedAt);
+    this.lastKnownTotalUptimeMs += durationMs;
+    this.sessionStartedAt = null;
+    this.connectedPlayerNames.clear();
+    this.lastPlayerSignalAt = 0;
+    if (this.onSessionEnd) {
+      try {
+        this.onSessionEnd(durationMs);
+      } catch (_) {
+        // A misbehaving listener must not break the shutdown path.
+      }
+    }
+  }
+
+  /**
+   * Public hook for sibling services to update the persisted total uptime
+   * (e.g. after persisting it to instance.json). The argument is interpreted
+   * as the new total in seconds.
+   */
+  setLastKnownTotalUptimeSeconds(seconds: number): void {
+    if (Number.isFinite(seconds) && seconds >= 0) {
+      this.lastKnownTotalUptimeMs = Math.floor(seconds * 1000);
     }
   }
 
@@ -252,6 +348,7 @@ class PzProcessControlService implements IServerControlService {
   /** Clears all running intervals/timers and resets runtime counters. */
   private clearAllTimers(): void {
     if (this.playerQueryInterval) { clearInterval(this.playerQueryInterval); this.playerQueryInterval = null; }
+    if (this.stalePlayerCheckInterval) { clearInterval(this.stalePlayerCheckInterval); this.stalePlayerCheckInterval = null; }
     if (this.idleShutdownTimer)   { clearTimeout(this.idleShutdownTimer);   this.idleShutdownTimer = null; }
     if (this.monitorInterval)     { clearInterval(this.monitorInterval);     this.monitorInterval = null; }
     this.idleShutdownExpiresAt = null;
@@ -260,6 +357,8 @@ class PzProcessControlService implements IServerControlService {
   /** Resets volatile counters to their default values. */
   private resetCounters(): void {
     this.onlinePlayerCount = 0;
+    this.connectedPlayerNames.clear();
+    this.lastPlayerSignalAt = 0;
     this.cachedCpuPercent = 0;
     this.cachedMemMb = 0;
     this.lastCpuTicks = 0;
@@ -274,6 +373,11 @@ class PzProcessControlService implements IServerControlService {
       stats.cpu = this.cachedCpuPercent;
       stats.memory = this.cachedMemMb;
     }
+
+    const currentSessionSeconds = this.sessionStartedAt
+      ? Math.floor((Date.now() - this.sessionStartedAt) / 1000)
+      : 0;
+    const totalSeconds = Math.floor(this.computeTotalUptimeMs() / 1000);
 
     return {
       status: this.pzStatus,
@@ -291,6 +395,11 @@ class PzProcessControlService implements IServerControlService {
         jvmMin: this.systemConfig.JVM_MIN_GB,
         jvmMax: this.systemConfig.JVM_MAX_GB,
         installedBranch: this.installedBranch
+      },
+      uptime: {
+        sessionStartedAt: this.sessionStartedAt,
+        currentSessionSeconds,
+        totalUptimeSeconds: totalSeconds
       }
     };
   }
@@ -393,11 +502,26 @@ class PzProcessControlService implements IServerControlService {
           if (line.trim()) {
             this.appendLog(line);
 
-            // Parse player count connected logs
-            const match = line.match(/(?:Players connected|Players)\s*\((\d+)\)/i);
-            if (match) {
-              const count = parseInt(match[1], 10);
+            // Parse "Players connected (N)" / "Jugadores conectados (N)" output.
+            // This is the response to the `players` admin command, and also
+            // appears in some PZ server versions as a periodic log line.
+            const countMatch = line.match(PLAYER_COUNT_REGEX);
+            if (countMatch) {
+              const count = parseInt(countMatch[1], 10);
               this.updatePlayerCount(count);
+            }
+
+            // Track individual connect/disconnect events as a backup signal:
+            // the periodic `players` query can race with rapid joins/leaves.
+            const connectMatch = line.match(PLAYER_CONNECTED_REGEX);
+            if (connectMatch) {
+              this.connectedPlayerNames.add(connectMatch[1]);
+              this.updatePlayerCount(this.connectedPlayerNames.size);
+            }
+            const disconnectMatch = line.match(PLAYER_DISCONNECTED_REGEX);
+            if (disconnectMatch) {
+              this.connectedPlayerNames.delete(disconnectMatch[1]);
+              this.updatePlayerCount(this.connectedPlayerNames.size);
             }
 
             // Trigger player count check on client connect/disconnect
@@ -411,18 +535,28 @@ class PzProcessControlService implements IServerControlService {
             // Detect server startup complete (case-insensitive check)
             const lowerLine = line.toLowerCase();
             if (this.pzStatus === ServerStatus.Starting && (
-              lowerLine.includes('zomboid server is running') || 
-              lowerLine.includes('raknet startup') || 
+              lowerLine.includes('zomboid server is running') ||
+              lowerLine.includes('raknet startup') ||
               lowerLine.includes('server started') ||
               lowerLine.includes('reborn')
             )) {
               this.pzStatus = ServerStatus.Running;
+              this.sessionStartedAt = Date.now();
+              this.connectedPlayerNames.clear();
+              this.lastPlayerSignalAt = Date.now();
               this.broadcastStatus();
               this.appendLog(SERVER_STRINGS.MSG_SERVER_ONLINE);
-              
+
               if (this.playerQueryInterval) clearInterval(this.playerQueryInterval);
               this.playerQueryInterval = setInterval(() => this.queryPlayerCount(), SERVER_CONSTANTS.PLAYER_COUNT_QUERY_INTERVAL_MS);
               this.queryPlayerCount();
+
+              // Watchdog: if the PZ server stops emitting "Players connected"
+              // events (stdout buffer stall, etc.) and we have no signal
+              // for PLAYER_STALE_THRESHOLD_MS, assume the server is empty
+              // and let the auto-shutdown timer arm.
+              if (this.stalePlayerCheckInterval) clearInterval(this.stalePlayerCheckInterval);
+              this.stalePlayerCheckInterval = setInterval(() => this.checkStalePlayers(), Math.max(5000, Math.floor(SERVER_CONSTANTS.PLAYER_STALE_THRESHOLD_MS / 3)));
 
               if (this.monitorInterval) clearInterval(this.monitorInterval);
               this.lastCpuTicks = 0;
@@ -454,14 +588,15 @@ class PzProcessControlService implements IServerControlService {
           .replace('{code}', String(code))
           .replace('{signal}', String(signal))
       );
-      
+
       if (this.pzStatus === ServerStatus.Running || this.pzStatus === ServerStatus.Starting) {
         this.pzStatus = ServerStatus.Crashed;
       } else {
         this.pzStatus = ServerStatus.Stopped;
       }
-      
+
       this.pzProcess = null;
+      this.endCurrentSession();
       this.clearAllTimers();
       this.resetCounters();
       this.broadcastStatus();
@@ -521,6 +656,7 @@ class PzProcessControlService implements IServerControlService {
         }
         this.pzStatus = ServerStatus.Stopped;
         this.pzProcess = null;
+        this.endCurrentSession();
         this.broadcastStatus();
       }
     }, STOP_GRACE_PERIOD_MS);
@@ -734,11 +870,32 @@ class PzProcessControlService implements IServerControlService {
   }
 
   updatePlayerCount(count: number): void {
+    this.lastPlayerSignalAt = Date.now();
     if (this.onlinePlayerCount !== count) {
       this.appendLog(SERVER_STRINGS.MSG_PLAYER_COUNT_UPDATED.replace('{count}', String(count)));
       this.onlinePlayerCount = count;
       this.broadcastStatus();
     }
+    this.checkIdleShutdown();
+  }
+
+  /**
+   * Watchdog: if the PZ server has not emitted any positive player-count
+   * signal for an extended period (e.g. stdout buffer stalled, server
+   * crashed silently), assume the server is empty so the auto-shutdown
+   * timer can still fire. Called by the stale-check interval.
+   */
+  private checkStalePlayers(): void {
+    if (this.pzStatus !== ServerStatus.Running) return;
+    const sinceLast = Date.now() - this.lastPlayerSignalAt;
+    if (sinceLast < SERVER_CONSTANTS.PLAYER_STALE_THRESHOLD_MS) return;
+    if (this.onlinePlayerCount === 0) return;
+    this.appendLog(
+      `[Manager] Sin señal de jugadores durante ${Math.round(sinceLast / 1000)}s; ` +
+      `asumiendo 0 para reactivar el autoapagado.`
+    );
+    this.onlinePlayerCount = 0;
+    this.broadcastStatus();
     this.checkIdleShutdown();
   }
 

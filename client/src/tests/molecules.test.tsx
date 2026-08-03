@@ -112,7 +112,8 @@ describe('Molecules Components Tests', () => {
             lastError: null,
             createdAt: 1,
             updatedAt: 1,
-            lastInstalledAt: null
+            lastInstalledAt: null,
+            totalUptimeSeconds: 0
           }
         ]}
         activeInstanceId="inst-1"

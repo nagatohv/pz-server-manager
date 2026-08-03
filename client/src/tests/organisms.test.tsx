@@ -16,7 +16,8 @@ const buildStatus = (status: ServerStatus) => ({
   status,
   onlinePlayers: status === ServerStatus.Running ? 4 : 0,
   stats: { cpu: 15, memory: 1200, memoryTotal: 4096 },
-  idleShutdown: { minutes: 5, active: status === ServerStatus.Running, remainingSeconds: 300 }
+  idleShutdown: { minutes: 5, active: status === ServerStatus.Running, remainingSeconds: 300 },
+  uptime: { sessionStartedAt: null, currentSessionSeconds: 0, totalUptimeSeconds: 0 }
 });
 
 describe('Organisms Components Tests', () => {

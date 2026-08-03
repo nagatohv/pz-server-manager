@@ -36,7 +36,13 @@ export const SERVER_CONSTANTS = {
   JVM_MAX_GB_FALLBACK: 8,
   
   MAX_LOG_BUFFER_SIZE: 1000,
-  PLAYER_COUNT_QUERY_INTERVAL_MS: 60000,
+  /** Interval (ms) for periodic player-count queries. Short enough so the
+   *  auto-shutdown timer can react quickly to empty servers, long enough
+   *  to avoid hammering the PZ admin console. */
+  PLAYER_COUNT_QUERY_INTERVAL_MS: 15000,
+  /** After this many ms without a positive player signal, assume the server
+   *  is empty and let the auto-shutdown timer arm. */
+  PLAYER_STALE_THRESHOLD_MS: 90_000,
   RESOURCE_MONITOR_INTERVAL_MS: 3000,
   
   STEAM_APP_ID: '380870',

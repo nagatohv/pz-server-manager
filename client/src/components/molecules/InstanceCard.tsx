@@ -6,6 +6,7 @@ import { Badge } from '../atoms/Badge.js';
 import { PlayIcon, PowerIcon, TrashIcon, SwapIcon, UpdateIcon, SettingsIcon } from '../atoms/Icon.js';
 import { GAME_ID_PROJECT_ZOMBOID } from '../../config/constants.js';
 import { ButtonVariant, ServerStatus, type PzInstance, type ServerStatusPayload } from '../../types.js';
+import { formatUptime } from '../../utils/uptime.js';
 
 interface InstanceCardProps {
   instance: PzInstance;
@@ -134,6 +135,31 @@ export const InstanceCard: React.FC<InstanceCardProps> = ({
             <span className="instance-card__stat-label">{t('header.ram')}: </span>
             <strong className="instance-card__stat-value instance-card__stat-value--memory">
               {activeServerStatus.stats?.memory ?? 0} MB
+            </strong>
+          </div>
+          <div className="instance-card__stat-item instance-card__stat-item--span-3" data-testid="uptime-current">
+            <span className="instance-card__stat-label">{t('servers.uptimeCurrent')}: </span>
+            <strong className="instance-card__stat-value instance-card__stat-value--uptime">
+              {activeServerStatus.uptime?.sessionStartedAt
+                ? formatUptime(activeServerStatus.uptime.currentSessionSeconds)
+                : t('servers.uptimeNeverStarted')}
+            </strong>
+          </div>
+          <div className="instance-card__stat-item instance-card__stat-item--span-3" data-testid="uptime-total">
+            <span className="instance-card__stat-label">{t('servers.uptimeTotal')}: </span>
+            <strong className="instance-card__stat-value instance-card__stat-value--uptime">
+              {formatUptime(instance.totalUptimeSeconds)}
+            </strong>
+          </div>
+        </div>
+      )}
+
+      {!isActive && (
+        <div className="instance-card__stats instance-card__stats--inactive" data-testid="uptime-total-inactive">
+          <div className="instance-card__stat-item instance-card__stat-item--span-3">
+            <span className="instance-card__stat-label">{t('servers.uptimeTotal')}: </span>
+            <strong className="instance-card__stat-value instance-card__stat-value--uptime">
+              {formatUptime(instance.totalUptimeSeconds)}
             </strong>
           </div>
         </div>

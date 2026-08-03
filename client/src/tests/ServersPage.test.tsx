@@ -21,7 +21,30 @@ const buildInstance = (overrides: Partial<PzInstance> = {}): PzInstance => ({
   createdAt: 1,
   updatedAt: 1,
   lastInstalledAt: 1,
+  totalUptimeSeconds: 0,
   ...overrides
+});
+
+const ZERO_UPTIME = { sessionStartedAt: null, currentSessionSeconds: 0, totalUptimeSeconds: 0 };
+const buildActiveStatus = (overrides: Partial<{
+  status: ServerStatus;
+  onlinePlayers: number;
+  cpu: number;
+  memory: number;
+  memoryTotal: number;
+  idleActive: boolean;
+  idleMinutes: number;
+  remainingSeconds: number;
+}> = {}) => ({
+  status: overrides.status ?? ServerStatus.Stopped,
+  onlinePlayers: overrides.onlinePlayers ?? 0,
+  stats: { cpu: overrides.cpu ?? 0, memory: overrides.memory ?? 0, memoryTotal: overrides.memoryTotal ?? 4096 },
+  idleShutdown: {
+    minutes: overrides.idleMinutes ?? 5,
+    active: overrides.idleActive ?? false,
+    remainingSeconds: overrides.remainingSeconds ?? 0
+  },
+  uptime: ZERO_UPTIME
 });
 
 interface Harness {
@@ -68,7 +91,7 @@ describe('ServersPage', () => {
 
   it('shows the empty state when no instances exist', () => {
     const harness = buildHarness();
-    render(<ServersPage harness={harness as any} branches={sampleBranches} branchesSource="steam" activeServerStatus={{ status: ServerStatus.Stopped, onlinePlayers: 0, stats: { cpu: 0, memory: 0, memoryTotal: 4096 }, idleShutdown: { minutes: 5, active: false, remainingSeconds: 0 } }} onStart={noop} onStop={noop} />);
+    render(<ServersPage harness={harness as any} branches={sampleBranches} branchesSource="steam" activeServerStatus={{ status: ServerStatus.Stopped, onlinePlayers: 0, stats: { cpu: 0, memory: 0, memoryTotal: 4096 }, idleShutdown: { minutes: 5, active: false, remainingSeconds: 0 }, uptime: { sessionStartedAt: null, currentSessionSeconds: 0, totalUptimeSeconds: 0 } }} onStart={noop} onStop={noop} />);
     expect(screen.getByText(/no hay servidores|no servers/i)).toBeDefined();
   });
 
@@ -80,14 +103,14 @@ describe('ServersPage', () => {
         updatedAt: 0
       }
     });
-    render(<ServersPage harness={harness as any} branches={sampleBranches} branchesSource="steam" activeServerStatus={{ status: ServerStatus.Running, onlinePlayers: 4, stats: { cpu: 15, memory: 1200, memoryTotal: 4096 }, idleShutdown: { minutes: 5, active: false, remainingSeconds: 0 } }} onStart={noop} onStop={noop} />);
+    render(<ServersPage harness={harness as any} branches={sampleBranches} branchesSource="steam" activeServerStatus={{ status: ServerStatus.Running, onlinePlayers: 4, stats: { cpu: 15, memory: 1200, memoryTotal: 4096 }, idleShutdown: { minutes: 5, active: false, remainingSeconds: 0 }, uptime: { sessionStartedAt: null, currentSessionSeconds: 0, totalUptimeSeconds: 0 } }} onStart={noop} onStop={noop} />);
     expect(screen.getByText('srv-a')).toBeDefined();
     expect(screen.getByText(/ejecutándose|en línea|online/i)).toBeDefined();
   });
 
   it('opens the create dialog and submits the form', async () => {
     const harness = buildHarness();
-    const { container } = render(<ServersPage harness={harness as any} branches={sampleBranches} branchesSource="steam" activeServerStatus={{ status: ServerStatus.Stopped, onlinePlayers: 0, stats: { cpu: 0, memory: 0, memoryTotal: 4096 }, idleShutdown: { minutes: 5, active: false, remainingSeconds: 0 } }} onStart={noop} onStop={noop} />);
+    const { container } = render(<ServersPage harness={harness as any} branches={sampleBranches} branchesSource="steam" activeServerStatus={{ status: ServerStatus.Stopped, onlinePlayers: 0, stats: { cpu: 0, memory: 0, memoryTotal: 4096 }, idleShutdown: { minutes: 5, active: false, remainingSeconds: 0 }, uptime: { sessionStartedAt: null, currentSessionSeconds: 0, totalUptimeSeconds: 0 } }} onStart={noop} onStop={noop} />);
     const openBtn = container.querySelector('[data-action="create-instance"]') as HTMLButtonElement;
     fireEvent.click(openBtn);
 
@@ -110,7 +133,7 @@ describe('ServersPage', () => {
         updatedAt: 0
       }
     });
-    render(<ServersPage harness={harness as any} branches={sampleBranches} branchesSource="steam" activeServerStatus={{ status: ServerStatus.Stopped, onlinePlayers: 0, stats: { cpu: 0, memory: 0, memoryTotal: 4096 }, idleShutdown: { minutes: 5, active: false, remainingSeconds: 0 } }} onStart={noop} onStop={noop} />);
+    render(<ServersPage harness={harness as any} branches={sampleBranches} branchesSource="steam" activeServerStatus={{ status: ServerStatus.Stopped, onlinePlayers: 0, stats: { cpu: 0, memory: 0, memoryTotal: 4096 }, idleShutdown: { minutes: 5, active: false, remainingSeconds: 0 }, uptime: { sessionStartedAt: null, currentSessionSeconds: 0, totalUptimeSeconds: 0 } }} onStart={noop} onStop={noop} />);
     fireEvent.click(screen.getByRole('button', { name: /instalar \/ actualizar|instalar|update|install/i }));
     await waitFor(() => {
       expect(harness.install).toHaveBeenCalledWith('a');
@@ -125,7 +148,7 @@ describe('ServersPage', () => {
         updatedAt: 0
       }
     });
-    const { container } = render(<ServersPage harness={harness as any} branches={sampleBranches} branchesSource="steam" activeServerStatus={{ status: ServerStatus.Stopped, onlinePlayers: 0, stats: { cpu: 0, memory: 0, memoryTotal: 4096 }, idleShutdown: { minutes: 5, active: false, remainingSeconds: 0 } }} onStart={noop} onStop={noop} />);
+    const { container } = render(<ServersPage harness={harness as any} branches={sampleBranches} branchesSource="steam" activeServerStatus={{ status: ServerStatus.Stopped, onlinePlayers: 0, stats: { cpu: 0, memory: 0, memoryTotal: 4096 }, idleShutdown: { minutes: 5, active: false, remainingSeconds: 0 }, uptime: { sessionStartedAt: null, currentSessionSeconds: 0, totalUptimeSeconds: 0 } }} onStart={noop} onStop={noop} />);
     fireEvent.click(container.querySelector('[data-action="delete"]') as HTMLElement);
     fireEvent.click(container.querySelector('[data-action="alert-confirm"]') as HTMLElement);
     await waitFor(() => {
@@ -141,7 +164,7 @@ describe('ServersPage', () => {
         updatedAt: 0
       }
     });
-    render(<ServersPage harness={harness as any} branches={sampleBranches} branchesSource="steam" activeServerStatus={{ status: ServerStatus.Stopped, onlinePlayers: 0, stats: { cpu: 0, memory: 0, memoryTotal: 4096 }, idleShutdown: { minutes: 5, active: false, remainingSeconds: 0 } }} onStart={noop} onStop={noop} />);
+    render(<ServersPage harness={harness as any} branches={sampleBranches} branchesSource="steam" activeServerStatus={{ status: ServerStatus.Stopped, onlinePlayers: 0, stats: { cpu: 0, memory: 0, memoryTotal: 4096 }, idleShutdown: { minutes: 5, active: false, remainingSeconds: 0 }, uptime: { sessionStartedAt: null, currentSessionSeconds: 0, totalUptimeSeconds: 0 } }} onStart={noop} onStop={noop} />);
     fireEvent.click(screen.getByRole('button', { name: /iniciar servidor|start server/i }));
     await waitFor(() => {
       expect(harness.select).toHaveBeenCalledWith('a');
@@ -165,7 +188,7 @@ describe('ServersPage', () => {
         harness={harness as any}
         branches={sampleBranches}
         branchesSource="steam"
-        activeServerStatus={{ status: ServerStatus.Stopped, onlinePlayers: 0, stats: { cpu: 0, memory: 0, memoryTotal: 4096 }, idleShutdown: { minutes: 5, active: false, remainingSeconds: 0 } }}
+        activeServerStatus={{ status: ServerStatus.Stopped, onlinePlayers: 0, stats: { cpu: 0, memory: 0, memoryTotal: 4096 }, idleShutdown: { minutes: 5, active: false, remainingSeconds: 0 }, uptime: { sessionStartedAt: null, currentSessionSeconds: 0, totalUptimeSeconds: 0 } }}
         onStart={noop}
         onStop={noop}
       />
@@ -196,7 +219,7 @@ describe('ServersPage', () => {
         harness={harness as any}
         branches={sampleBranches}
         branchesSource="steam"
-        activeServerStatus={{ status: ServerStatus.Stopped, onlinePlayers: 0, stats: { cpu: 0, memory: 0, memoryTotal: 4096 }, idleShutdown: { minutes: 5, active: false, remainingSeconds: 0 } }}
+        activeServerStatus={{ status: ServerStatus.Stopped, onlinePlayers: 0, stats: { cpu: 0, memory: 0, memoryTotal: 4096 }, idleShutdown: { minutes: 5, active: false, remainingSeconds: 0 }, uptime: { sessionStartedAt: null, currentSessionSeconds: 0, totalUptimeSeconds: 0 } }}
         onStart={noop}
         onStop={noop}
       />
@@ -225,7 +248,7 @@ describe('ServersPage', () => {
         harness={harness as any}
         branches={sampleBranches}
         branchesSource="steam"
-        activeServerStatus={{ status: ServerStatus.Stopped, onlinePlayers: 0, stats: { cpu: 0, memory: 0, memoryTotal: 4096 }, idleShutdown: { minutes: 5, active: false, remainingSeconds: 0 } }}
+        activeServerStatus={{ status: ServerStatus.Stopped, onlinePlayers: 0, stats: { cpu: 0, memory: 0, memoryTotal: 4096 }, idleShutdown: { minutes: 5, active: false, remainingSeconds: 0 }, uptime: { sessionStartedAt: null, currentSessionSeconds: 0, totalUptimeSeconds: 0 } }}
         onStart={noop}
         onStop={noop}
       />

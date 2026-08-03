@@ -83,12 +83,20 @@ export interface IdleShutdownState {
   remainingSeconds: number;
 }
 
+/** Métricas de uptime del servidor activo */
+export interface UptimeInfo {
+  sessionStartedAt: number | null;
+  currentSessionSeconds: number;
+  totalUptimeSeconds: number;
+}
+
 /** Estado completo del servidor devuelto por la API */
 export interface ServerStatusPayload {
   status: ServerStatus;
   onlinePlayers: number;
   stats: ServerStats;
   idleShutdown: IdleShutdownState;
+  uptime: UptimeInfo;
 }
 
 /** Elemento de la lista de mods */
@@ -158,6 +166,7 @@ export interface PzInstance {
   createdAt: number;
   updatedAt: number;
   lastInstalledAt: number | null;
+  totalUptimeSeconds: number;
 }
 
 /** Registro global de instancias conocido por el portal. */

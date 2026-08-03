@@ -10,7 +10,8 @@ const baseStatus = {
   status: ServerStatus.Stopped,
   onlinePlayers: 0,
   stats: { cpu: 0, memory: 0, memoryTotal: 0 },
-  idleShutdown: { minutes: 0, active: false, remainingSeconds: 0 }
+  idleShutdown: { minutes: 0, active: false, remainingSeconds: 0 },
+  uptime: { sessionStartedAt: null, currentSessionSeconds: 0, totalUptimeSeconds: 0 }
 };
 
 const dummyRoute = { path: 'servers' as const, serverId: null, configSubTab: 'console' as const };

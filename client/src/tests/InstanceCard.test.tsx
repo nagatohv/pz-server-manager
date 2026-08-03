@@ -17,6 +17,7 @@ const buildInstance = (overrides: Partial<PzInstance> = {}): PzInstance => ({
   dataPath: '/data/instances/inst-1/Zomboid',
   gamePort: 16261,
   rconPort: 27015,
+  totalUptimeSeconds: 0,
   maxPlayers: 16,
   lastError: null,
   createdAt: 1,
@@ -234,5 +235,55 @@ describe('InstanceCard molecule', () => {
     expect(ButtonVariant.Success).toBeDefined();
     expect(ButtonVariant.Danger).toBeDefined();
     expect(ButtonVariant.Control).toBeDefined();
+  });
+
+  it('shows the total uptime for an inactive instance', () => {
+    render(
+      <InstanceCard
+        instance={buildInstance({ totalUptimeSeconds: 90061 })}
+        isActive={false}
+        activeStatus={ServerStatus.Stopped}
+        loading={false}
+        onSelect={noop}
+        onInstall={noop}
+        onStart={noop}
+        onStop={noop}
+        onDelete={noop}
+        onMigrate={noop}
+      />
+    );
+    const block = screen.getByTestId('uptime-total-inactive');
+    expect(block.textContent).toMatch(/1d 1h 1m 1s/);
+  });
+
+  it('shows the current and total uptime while the server is running', () => {
+    const startedAt = Date.now() - 65_000;
+    render(
+      <InstanceCard
+        instance={buildInstance({ id: 'a', totalUptimeSeconds: 3661 })}
+        isActive={true}
+        activeStatus={ServerStatus.Running}
+        activeServerStatus={{
+          status: ServerStatus.Running,
+          onlinePlayers: 0,
+          stats: { cpu: 0, memory: 0, memoryTotal: 0 },
+          idleShutdown: { minutes: 0, active: false, remainingSeconds: 0 },
+          uptime: {
+            sessionStartedAt: startedAt,
+            currentSessionSeconds: 65,
+            totalUptimeSeconds: 3661
+          }
+        }}
+        loading={false}
+        onSelect={noop}
+        onInstall={noop}
+        onStart={noop}
+        onStop={noop}
+        onDelete={noop}
+        onMigrate={noop}
+      />
+    );
+    expect(screen.getByTestId('uptime-current').textContent).toMatch(/1m 5s/);
+    expect(screen.getByTestId('uptime-total').textContent).toMatch(/1h 1m/);
   });
 });

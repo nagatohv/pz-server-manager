@@ -636,6 +636,18 @@ body {
   grid-column: span 2;
 }
 
+.instance-card__stat-item--span-3 {
+  grid-column: span 2;
+}
+
+.instance-card__stat-item--span-3:first-child {
+  grid-column: 1 / -1;
+}
+
+.instance-card__stats--inactive {
+  grid-template-columns: 1fr;
+}
+
 .instance-card__stat-label {
   opacity: 0.6;
 }
@@ -654,6 +666,11 @@ body {
 
 .instance-card__stat-value--memory {
   color: var(--color-purple-light);
+}
+
+.instance-card__stat-value--uptime {
+  color: var(--color-warning, #facc15);
+  font-variant-numeric: tabular-nums;
 }
 
 .instance-card__actions {

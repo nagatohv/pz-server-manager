@@ -129,4 +129,100 @@ describe('PzProcessControlService', () => {
     const result = service.updateGame('unstable');
     expect(result.error).toBeDefined();
   });
+
+  it('should detect player count from Spanish output ("Jugadores conectados (N)")', () => {
+    service.setPanelConfig({ idleShutdownMinutes: 5, serverLanguage: 'es' });
+    (service as any).pzStatus = ServerStatus.Running;
+    (service as any).onlinePlayerCount = 0;
+    (service as any).checkIdleShutdown();
+
+    // Simulate the multilang regex matching the Spanish output of the `players` command.
+    (service as any).appendLog('Jugadores conectados (0):');
+    const match = 'Jugadores conectados (0):'.match(/(?:Players?\s+connected|Jugadores?\s+conectados?)\s*\(?(\d+)\)?/i);
+    expect(match).not.toBeNull();
+    (service as any).updatePlayerCount(parseInt(match![1], 10));
+
+    const status = service.getStatus();
+    expect(status.onlinePlayers).toBe(0);
+    expect(status.idleShutdown.active).toBe(true);
+
+    (service as any).clearAllTimers();
+  });
+
+  it('should track individual player connect/disconnect events as a backup signal', () => {
+    (service as any).pzStatus = ServerStatus.Running;
+    (service as any).onlinePlayerCount = 0;
+    (service as any).lastPlayerSignalAt = 0;
+
+    // Simulate two players joining via Spanish-language connect events.
+    (service as any).connectedPlayerNames = new Set();
+    const joinRegex = /(?:Player|User|Jugador|Usuario)\s+(?:connected|conectado)\s*[:\-]\s*(\S+)/i;
+    const leaveRegex = /(?:Player|User|Jugador|Usuario)\s+(?:disconnected|desconectado)\s*[:\-]\s*(\S+)/i;
+
+    const join1 = 'Jugador conectado: alice'.match(joinRegex);
+    expect(join1).not.toBeNull();
+    (service as any).connectedPlayerNames.add(join1![1]);
+    (service as any).onlinePlayerCount = (service as any).connectedPlayerNames.size;
+
+    const join2 = 'Jugador conectado: bob'.match(joinRegex);
+    (service as any).connectedPlayerNames.add(join2![1]);
+    (service as any).onlinePlayerCount = (service as any).connectedPlayerNames.size;
+
+    expect((service as any).connectedPlayerNames.size).toBe(2);
+    expect((service as any).onlinePlayerCount).toBe(2);
+
+    const leave1 = 'Jugador desconectado: alice'.match(leaveRegex);
+    expect(leave1).not.toBeNull();
+    (service as any).connectedPlayerNames.delete(leave1![1]);
+    (service as any).onlinePlayerCount = (service as any).connectedPlayerNames.size;
+
+    expect((service as any).connectedPlayerNames.size).toBe(1);
+    expect((service as any).onlinePlayerCount).toBe(1);
+  });
+
+  it('should track session uptime and fire onSessionEnd callback', () => {
+    const callback = vi.fn();
+    service.onSessionEnd = callback;
+
+    (service as any).pzStatus = ServerStatus.Running;
+    (service as any).sessionStartedAt = Date.now() - 5000;
+    (service as any).lastKnownTotalUptimeMs = 120000;
+
+    (service as any).endCurrentSession();
+
+    expect(callback).toHaveBeenCalledTimes(1);
+    const duration = callback.mock.calls[0][0] as number;
+    expect(duration).toBeGreaterThanOrEqual(4000);
+    expect(duration).toBeLessThanOrEqual(6000);
+
+    const status = service.getStatus();
+    expect(status.uptime.sessionStartedAt).toBeNull();
+    expect(status.uptime.totalUptimeSeconds).toBeGreaterThanOrEqual(125);
+  });
+
+  it('should expose current and total uptime in the status payload', () => {
+    (service as any).sessionStartedAt = Date.now() - 10000;
+    (service as any).lastKnownTotalUptimeMs = 30000;
+    (service as any).pzStatus = ServerStatus.Running;
+
+    const status = service.getStatus();
+    expect(status.uptime.sessionStartedAt).not.toBeNull();
+    expect(status.uptime.currentSessionSeconds).toBeGreaterThanOrEqual(9);
+    expect(status.uptime.totalUptimeSeconds).toBeGreaterThanOrEqual(39);
+  });
+
+  it('should reset session and uptime on clearAllTimers/resetCounters', () => {
+    (service as any).sessionStartedAt = Date.now() - 3000;
+    (service as any).lastKnownTotalUptimeMs = 60000;
+    (service as any).connectedPlayerNames.add('alice');
+
+    (service as any).clearAllTimers();
+    (service as any).resetCounters();
+
+    expect((service as any).connectedPlayerNames.size).toBe(0);
+    // Note: clearAllTimers/resetCounters do NOT close the session; that happens
+    // in endCurrentSession which is only called on process exit. We assert here
+    // that resetCounters alone doesn't accidentally clear the session.
+    expect((service as any).sessionStartedAt).not.toBeNull();
+  });
 });

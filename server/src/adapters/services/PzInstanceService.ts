@@ -142,7 +142,8 @@ export class PzInstanceService implements IPzInstanceService {
         lastError: null,
         createdAt: now,
         updatedAt: now,
-        lastInstalledAt: null
+        lastInstalledAt: null,
+        totalUptimeSeconds: 0
       };
 
       await fsp.writeFile(
@@ -270,6 +271,40 @@ export class PzInstanceService implements IPzInstanceService {
 
     this.log(SERVER_STRINGS.MSG_INSTANCE_SELECTED.replace('{name}', instance.name));
     return instance;
+  }
+
+  /**
+   * Accumulates a finished session's duration into the active instance's
+   * persisted `totalUptimeSeconds`. Called from the process-control
+   * service callback whenever the server stops, crashes, or is killed.
+   */
+  async recordUptime(_ignoredInstanceId: string, sessionDurationMs: number): Promise<void> {
+    if (sessionDurationMs <= 0) return;
+    const reg = await this.repository.load();
+    if (!reg.activeInstanceId) return;
+    const updated = reg.instances.map((inst) => {
+      if (inst.id !== reg.activeInstanceId) return inst;
+      const previous = Number.isFinite(inst.totalUptimeSeconds) ? inst.totalUptimeSeconds : 0;
+      const next = previous + Math.floor(sessionDurationMs / 1000);
+      return { ...inst, totalUptimeSeconds: next, updatedAt: Date.now() };
+    });
+    await this.repository.update((r) => ({ ...r, instances: updated, updatedAt: Date.now() }));
+    this.persistMetadataFor(updated.find((i) => i.id === reg.activeInstanceId));
+  }
+
+  /**
+   * Writes the instance.json file for the given instance so its uptime
+   * survives even if the process is killed before the next registry flush.
+   */
+  private persistMetadataFor(instance: PzInstance | undefined): void {
+    if (!instance) return;
+    const instanceDir = path.dirname(instance.installPath);
+    const metaPath = path.join(instanceDir, SERVER_CONSTANTS.INSTANCE_METADATA_FILE);
+    try {
+      fs.writeFileSync(metaPath, JSON.stringify(instance, null, 2), 'utf8');
+    } catch (err) {
+      this.log(`[Manager] No se pudo persistir metadata de ${instance.name}: ${(err as Error).message}`);
+    }
   }
 
   async migrateUserData(sourceId: string, targetId: string): Promise<MigrateInstanceResult> {

@@ -23,7 +23,8 @@ const DEFAULT_STATUS: ServerStatusPayload = {
   status: ServerStatus.Stopped,
   onlinePlayers: 0,
   stats: { cpu: 0, memory: 0, memoryTotal: 0 },
-  idleShutdown: { minutes: 0, active: false, remainingSeconds: 0 }
+  idleShutdown: { minutes: 0, active: false, remainingSeconds: 0 },
+  uptime: { sessionStartedAt: null, currentSessionSeconds: 0, totalUptimeSeconds: 0 }
 };
 
 const isAuthError = (message: string): boolean => {
@@ -175,6 +176,32 @@ export function useServerStatus(
       if (timer) clearInterval(timer);
     };
   }, [status.idleShutdown?.active, status.idleShutdown?.remainingSeconds]);
+
+  // Tick the current-session uptime counter every second while a session
+  // is active. The server-side `sessionStartedAt` is the source of truth;
+  // we just derive the elapsed seconds locally so the UI refreshes without
+  // hammering the API.
+  useEffect(() => {
+    const sessionStart = status.uptime?.sessionStartedAt;
+    if (!sessionStart) return;
+    const timer = setInterval(() => {
+      setStatus((prev) => {
+        const started = prev.uptime?.sessionStartedAt;
+        if (!started) return prev;
+        const elapsed = Math.max(0, Math.floor((Date.now() - started) / 1000));
+        if (prev.uptime && prev.uptime.currentSessionSeconds === elapsed) return prev;
+        return {
+          ...prev,
+          uptime: {
+            sessionStartedAt: started,
+            currentSessionSeconds: elapsed,
+            totalUptimeSeconds: prev.uptime?.totalUptimeSeconds ?? 0
+          }
+        };
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [status.uptime?.sessionStartedAt]);
 
   const executeAction = useCallback(
     async (action: ServerAction, branch?: string) => {
